@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Acceso Revendedores — Settings Store</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  .rv-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .rv-card {
+    width: 100%;
+    max-width: 380px;
+    background: var(--c-card);
+    border: var(--border-glow);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 32px 28px;
+  }
+  .rv-card h1 {
+    font-family: var(--f-display);
+    font-size: 1.3rem;
+    margin: 0 0 6px;
+    color: var(--c-white);
+  }
+  .rv-card p.sub {
+    color: var(--c-gray-soft);
+    font-size: 0.9rem;
+    margin: 0 0 24px;
+  }
+  .rv-field { margin-bottom: 16px; }
+  .rv-field label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--c-gray-soft);
+    margin-bottom: 6px;
+  }
+  .rv-field input {
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--c-bg-alt);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: var(--c-white);
+    font-family: var(--f-body);
+    font-size: 0.95rem;
+  }
+  .rv-field input:focus {
+    outline: none;
+    border-color: var(--c-blue);
+  }
+  .rv-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--c-blue);
+    color: var(--c-bg);
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .rv-btn:hover { background: var(--c-blue-glow); }
+  .rv-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .rv-msg {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    text-align: center;
+    min-height: 18px;
+  }
+  .rv-msg.error { color: #ff6b6b; }
+  .rv-msg.ok { color: var(--c-blue-glow); }
+  .rv-content { display: none; }
+  .rv-content.visible { display: block; }
+  .rv-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    background: rgba(0,168,255,0.12);
+    border: 1px solid rgba(0,168,255,0.35);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    color: var(--c-blue-glow);
+    margin-bottom: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="rv-wrap">
+  <div class="rv-card">
+
+    <!-- FORM DE ACCESO -->
+    <div id="rvForm">
+      <h1>Acceso Revendedores</h1>
+      <p class="sub">Ingresá tu nombre y el código que te compartieron.</p>
+
+      <div class="rv-field">
+        <label for="rvName">Tu nombre</label>
+        <input type="text" id="rvName" placeholder="Ej: Juan / Nick del clan" autocomplete="off" />
+      </div>
+
+      <div class="rv-field">
+        <label for="rvCode">Código de acceso</label>
+        <input type="password" id="rvCode" placeholder="••••••••" autocomplete="off" />
+      </div>
+
+      <button class="rv-btn" id="rvSubmit">Ingresar</button>
+      <div class="rv-msg" id="rvMsg"></div>
+    </div>
+
+    <!-- CONTENIDO DESPUÉS DE ENTRAR -->
+    <div class="rv-content" id="rvContent">
+      <span class="rv-badge">Acceso concedido</span>
+      <h1>¡Bienvenido, <span id="rvNameDisplay"></span>!</h1>
+      <p class="sub">Ya quedaste registrado como revendedor/miembro del clan. Escribinos por WhatsApp para coordinar tus pedidos con precio preferencial.</p>
+    </div>
+
+  </div>
+</div>
+
+<script type="module">
+  import {
+    db, doc, getDoc, collection, addDoc, updateDoc, serverTimestamp
+  } from "./firebase-init.js";
+
+  const formEl = document.getElementById("rvForm");
+  const contentEl = document.getElementById("rvContent");
+  const nameInput = document.getElementById("rvName");
+  const codeInput = document.getElementById("rvCode");
+  const submitBtn = document.getElementById("rvSubmit");
+  const msgEl = document.getElementById("rvMsg");
+  const nameDisplay = document.getElementById("rvNameDisplay");
+
+  const STORAGE_KEY = "rv_session_id";
+
+  function setMsg(text, type) {
+    msgEl.textContent = text;
+    msgEl.className = "rv-msg " + (type || "");
+  }
+
+  async function startHeartbeat(sessionId) {
+    const ref = doc(db, "resellerSessions", sessionId);
+    // Actualiza "última actividad" cada 30s mientras la página esté abierta
+    setInterval(() => {
+      updateDoc(ref, { lastSeen: serverTimestamp() }).catch(() => {});
+    }, 30000);
+    window.addEventListener("beforeunload", () => {
+      updateDoc(ref, { lastSeen: serverTimestamp() }).catch(() => {});
+    });
+  }
+
+  function showContent(name) {
+    formEl.style.display = "none";
+    nameDisplay.textContent = name;
+    contentEl.classList.add("visible");
+  }
+
+  // Si ya tiene sesión guardada en este navegador, entra directo
+  const existingSessionId = localStorage.getItem(STORAGE_KEY);
+  const existingName = localStorage.getItem("rv_name");
+  if (existingSessionId && existingName) {
+    showContent(existingName);
+    startHeartbeat(existingSessionId);
+  }
+
+  submitBtn.addEventListener("click", async () => {
+    const name = nameInput.value.trim();
+    const code = codeInput.value.trim();
+
+    if (!name || !code) {
+      setMsg("Completá tu nombre y el código.", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    setMsg("Verificando...", "");
+
+    try {
+      const codeDocRef = doc(db, "settings", "resellerAccess");
+      const codeSnap = await getDoc(codeDocRef);
+
+      if (!codeSnap.exists() || codeSnap.data().code !== code) {
+        setMsg("Código incorrecto.", "error");
+        submitBtn.disabled = false;
+        return;
+      }
+
+      // Código correcto: registramos la sesión
+      const sessionRef = await addDoc(collection(db, "resellerSessions"), {
+        name,
+        code,
+        loggedInAt: serverTimestamp(),
+        lastSeen: serverTimestamp(),
+        userAgent: navigator.userAgent,
+      });
+
+      localStorage.setItem(STORAGE_KEY, sessionRef.id);
+      localStorage.setItem("rv_name", name);
+
+      setMsg("¡Acceso concedido!", "ok");
+      showContent(name);
+      startHeartbeat(sessionRef.id);
+    } catch (err) {
+      console.error(err);
+      setMsg("Hubo un error. Probá de nuevo.", "error");
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+</body>
+</html>

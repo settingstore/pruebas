@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Panel Admin — Settings Store</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  body { min-height: 100vh; }
+  .ad-wrap { max-width: 960px; margin: 0 auto; padding: 40px 20px; }
+
+  /* Login */
+  .ad-login-wrap {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .ad-login-card {
+    width: 100%;
+    max-width: 360px;
+    background: var(--c-card);
+    border: var(--border-glow);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 32px 28px;
+  }
+  .ad-login-card h1 {
+    font-family: var(--f-display);
+    font-size: 1.2rem;
+    margin: 0 0 20px;
+  }
+  .ad-field { margin-bottom: 14px; }
+  .ad-field label { display:block; font-size:0.85rem; color: var(--c-gray-soft); margin-bottom:6px; }
+  .ad-field input {
+    width: 100%; padding: 12px 14px; background: var(--c-bg-alt);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    color: var(--c-white); font-family: var(--f-body); font-size: 0.95rem;
+  }
+  .ad-field input:focus { outline:none; border-color: var(--c-blue); }
+  .ad-btn {
+    width: 100%; padding: 12px; background: var(--c-blue); color: var(--c-bg);
+    border: none; border-radius: 10px; font-weight: 700; cursor: pointer;
+  }
+  .ad-btn:hover { background: var(--c-blue-glow); }
+  .ad-btn.secondary { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--c-white); }
+  .ad-msg { margin-top: 12px; font-size: 0.85rem; color: #ff6b6b; text-align:center; min-height: 16px; }
+
+  /* Panel */
+  #adPanel { display: none; }
+  .ad-header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
+  .ad-header h1 { font-family: var(--f-display); font-size: 1.4rem; margin:0; }
+  .ad-logout { padding: 8px 16px; font-size: 0.85rem; }
+
+  .ad-code-box {
+    background: var(--c-card); border: var(--border-glow); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 28px; display:flex; gap:12px; align-items:flex-end; flex-wrap: wrap;
+  }
+  .ad-code-box .ad-field { margin-bottom:0; flex: 1; min-width: 200px; }
+  .ad-code-box button { width:auto; padding: 12px 20px; }
+
+  .ad-stats { display:flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .ad-stat {
+    background: var(--c-card); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+    padding: 16px 20px; min-width: 140px;
+  }
+  .ad-stat .n { font-family: var(--f-display); font-size: 1.6rem; color: var(--c-blue-glow); }
+  .ad-stat .l { font-size: 0.8rem; color: var(--c-gray-soft); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--c-card); border-radius: var(--radius); overflow: hidden; }
+  thead th {
+    text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--c-gray-soft); padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  tbody td { padding: 12px 16px; font-size: 0.9rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  tbody tr:last-child td { border-bottom: none; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot.online { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
+  .dot.offline { background: #555; }
+  .ad-del { background: transparent; border: none; color: #ff6b6b; cursor: pointer; font-size: 0.8rem; }
+  .ad-empty { text-align:center; padding: 30px; color: var(--c-gray-soft); }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="ad-login-wrap" id="adLoginWrap">
+  <div class="ad-login-card">
+    <h1>Panel de Admin</h1>
+    <div class="ad-field">
+      <label for="adEmail">Email</label>
+      <input type="email" id="adEmail" autocomplete="username" />
+    </div>
+    <div class="ad-field">
+      <label for="adPass">Contraseña</label>
+      <input type="password" id="adPass" autocomplete="current-password" />
+    </div>
+    <button class="ad-btn" id="adLoginBtn">Entrar</button>
+    <div class="ad-msg" id="adLoginMsg"></div>
+  </div>
+</div>
+
+<!-- PANEL -->
+<div class="ad-wrap" id="adPanel">
+  <div class="ad-header">
+    <h1>Revendedores conectados</h1>
+    <button class="ad-btn secondary ad-logout" id="adLogoutBtn">Cerrar sesión</button>
+  </div>
+
+  <div class="ad-code-box">
+    <div class="ad-field">
+      <label for="adCodeInput">Código de acceso actual (revendedores / clan)</label>
+      <input type="text" id="adCodeInput" placeholder="Cargando..." />
+    </div>
+    <button class="ad-btn" id="adCodeSaveBtn">Guardar código</button>
+  </div>
+
+  <div class="ad-stats">
+    <div class="ad-stat"><div class="n" id="statTotal">0</div><div class="l">Total registrados</div></div>
+    <div class="ad-stat"><div class="n" id="statOnline">0</div><div class="l">En línea ahora</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Estado</th>
+        <th>Nombre</th>
+        <th>Conectado desde</th>
+        <th>Última actividad</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="adTableBody">
+      <tr><td colspan="5" class="ad-empty">Cargando...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+  import {
+    db, auth, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
+    onSnapshot, query, orderBy, signInWithEmailAndPassword,
+    onAuthStateChanged, signOut,
+  } from "./firebase-init.js";
+
+  const loginWrap = document.getElementById("adLoginWrap");
+  const panel = document.getElementById("adPanel");
+  const loginBtn = document.getElementById("adLoginBtn");
+  const logoutBtn = document.getElementById("adLogoutBtn");
+  const loginMsg = document.getElementById("adLoginMsg");
+  const emailInput = document.getElementById("adEmail");
+  const passInput = document.getElementById("adPass");
+  const codeInput = document.getElementById("adCodeInput");
+  const codeSaveBtn = document.getElementById("adCodeSaveBtn");
+  const tbody = document.getElementById("adTableBody");
+  const statTotal = document.getElementById("statTotal");
+  const statOnline = document.getElementById("statOnline");
+
+  const ONLINE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutos
+
+  loginBtn.addEventListener("click", async () => {
+    loginMsg.textContent = "";
+    try {
+      await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+    } catch (err) {
+      loginMsg.textContent = "Email o contraseña incorrectos.";
+    }
+  });
+
+  logoutBtn.addEventListener("click", () => signOut(auth));
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loginWrap.style.display = "none";
+      panel.style.display = "block";
+      loadCode();
+      listenSessions();
+    } else {
+      loginWrap.style.display = "flex";
+      panel.style.display = "none";
+    }
+  });
+
+  async function loadCode() {
+    const ref = doc(db, "settings", "resellerAccess");
+    const snap = await getDoc(ref);
+    codeInput.value = snap.exists() ? snap.data().code : "";
+  }
+
+  codeSaveBtn.addEventListener("click", async () => {
+    const ref = doc(db, "settings", "resellerAccess");
+    await setDoc(ref, { code: codeInput.value.trim() }, { merge: true });
+    codeSaveBtn.textContent = "¡Guardado!";
+    setTimeout(() => (codeSaveBtn.textContent = "Guardar código"), 1500);
+  });
+
+  function fmt(ts) {
+    if (!ts) return "—";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  }
+
+  function listenSessions() {
+    const q = query(collection(db, "resellerSessions"), orderBy("lastSeen", "desc"));
+    onSnapshot(q, (snap) => {
+      if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="5" class="ad-empty">Todavía no hay revendedores registrados.</td></tr>';
+        statTotal.textContent = "0";
+        statOnline.textContent = "0";
+        return;
+      }
+
+      let online = 0;
+      const now = Date.now();
+      const rows = [];
+
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        const lastSeenMs = d.lastSeen && d.lastSeen.toDate ? d.lastSeen.toDate().getTime() : 0;
+        const isOnline = now - lastSeenMs < ONLINE_THRESHOLD_MS;
+        if (isOnline) online++;
+
+        rows.push(`
+          <tr>
+            <td><span class="dot ${isOnline ? "online" : "offline"}"></span>${isOnline ? "En línea" : "Desconectado"}</td>
+            <td>${escapeHtml(d.name || "—")}</td>
+            <td>${fmt(d.loggedInAt)}</td>
+            <td>${fmt(d.lastSeen)}</td>
+            <td><button class="ad-del" data-id="${docSnap.id}">Eliminar</button></td>
+          </tr>
+        `);
+      });
+
+      tbody.innerHTML = rows.join("");
+      statTotal.textContent = String(snap.size);
+      statOnline.textContent = String(online);
+
+      tbody.querySelectorAll(".ad-del").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          await deleteDoc(doc(db, "resellerSessions", btn.dataset.id));
+        });
+      });
+    });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+</script>
+
+</body>
+</html>
