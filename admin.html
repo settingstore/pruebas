@@ -243,19 +243,14 @@
         <div><label>Nombre</label><input class="ad-mini-input" id="newName" placeholder="Ej: 500 Diamantes" /></div>
         <div><label>Diamantes (0 si es un pase)</label><input class="ad-mini-input" id="newDiamonds" type="number" value="0" /></div>
         <div><label>Badge (si no son diamantes)</label><input class="ad-mini-input" id="newBadge" placeholder="Ej: PASE" /></div>
+        <div><label>Imagen (nombre de archivo)</label><input class="ad-mini-input" id="newImage" placeholder="Ej: product-500.jpg" /></div>
         <div><label>Orden</label><input class="ad-mini-input" id="newOrder" type="number" value="1" /></div>
       </div>
-      <div class="ad-section-label">Imagen del producto</div>
-      <p style="font-size:0.75rem; color:var(--c-gray-soft); margin: 0 0 8px;">
-        Recomendado: foto cuadrada (1:1) o 4:3, mínimo 800×800 px, formato JPG o WEBP y menos
-        de 500 KB para que cargue rápido y se vea nítida en cualquier pantalla.
+      <p style="font-size:0.75rem; color:var(--c-gray-soft); margin: -6px 0 14px;">
+        Subí la foto al repositorio de GitHub (misma carpeta que las demás) y poné acá el
+        nombre exacto del archivo. Recomendado: cuadrada (1:1) o 4:3, mínimo 800×800 px,
+        JPG o WEBP y menos de 500 KB.
       </p>
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
-        <img id="newImagePreview" src="" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.12); display:none;" />
-        <input type="file" id="newImageFile" accept="image/*" class="ad-mini-input" style="max-width:260px;" />
-        <span id="newImageStatus" style="font-size:0.78rem; color:var(--c-gray-soft);"></span>
-        <input type="hidden" id="newImage" value="" />
-      </div>
       <div class="ad-section-label">Precio tienda</div>
       <div class="ad-add-grid">
         <div><label>Precio</label><input class="ad-mini-input" id="newPrice" type="number" placeholder="0" /></div>
@@ -321,9 +316,9 @@
 
 <script type="module">
   import {
-    db, auth, storage, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
+    db, auth, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
     addDoc, onSnapshot, query, orderBy, signInWithEmailAndPassword,
-    onAuthStateChanged, signOut, ref, uploadBytes, getDownloadURL,
+    onAuthStateChanged, signOut,
   } from "./firebase-init.js";
   import { NARANJAX } from "./config.js";
 
@@ -614,18 +609,6 @@
   let productsById = new Map();
   let resellerPricingById = new Map();
 
-  /* -------- Subida de imágenes a Firebase Storage -------- */
-  // Sube el archivo a /products/<timestamp>-<nombre> y devuelve la URL
-  // pública final que queda guardada en el campo "image" del producto
-  // (reemplaza tener que subir la foto al repo de GitHub a mano).
-  async function uploadProductImage(file) {
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
-    const path = `products/${Date.now()}-${safeName}`;
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, file);
-    return getDownloadURL(storageRef);
-  }
-
   // Datos originales que estaban hardcodeados en config.js — solo se
   // usan para el importador inicial (una vez), no se vuelven a tocar.
   const LEGACY_PRODUCTS = [
@@ -668,8 +651,7 @@
                 ${p.image
                   ? `<img src="${escapeHtml(p.image)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.12);" />`
                   : `<div style="width:44px; height:44px; border-radius:6px; border:1px dashed rgba(255,255,255,0.2);"></div>`}
-                <input type="file" accept="image/*" class="js-row-image-file" style="font-size:0.7rem; max-width:110px;" />
-                <span class="js-row-image-status" style="font-size:0.7rem; color:var(--c-gray-soft);"></span>
+                <input class="ad-mini-input js-f-image" value="${escapeHtml(p.image || "")}" placeholder="Ej: product-500.jpg" style="min-width:120px;" />
               </div>
             </td>
             <td><input class="ad-name-input js-f-name" value="${escapeHtml(p.name || "")}" /></td>
@@ -701,6 +683,7 @@
             name: val(".js-f-name"),
             order: Number(val(".js-f-order")) || 0,
             visible: tr.querySelector(".js-f-visible").checked,
+            image: val(".js-f-image"),
             price: Number(val(".js-f-price")) || 0,
             discountPrice: numOrNull(val(".js-f-discountPrice")),
           });
@@ -721,25 +704,6 @@
             btn.textContent = "Guardar";
             btn.disabled = false;
           }, 1200);
-        }
-      });
-    });
-
-    adProductsTableBody.querySelectorAll(".js-row-image-file").forEach((input) => {
-      input.addEventListener("change", async () => {
-        const file = input.files[0];
-        if (!file) return;
-        const tr = input.closest("tr");
-        const id = tr.dataset.id;
-        const statusEl = tr.querySelector(".js-row-image-status");
-        statusEl.textContent = "Subiendo...";
-        try {
-          const url = await uploadProductImage(file);
-          await updateDoc(doc(db, "products", id), { image: url });
-          statusEl.textContent = "¡Listo!";
-        } catch (err) {
-          console.error(err);
-          statusEl.textContent = "Error";
         }
       });
     });
@@ -791,27 +755,6 @@
   adAddProductBtn.addEventListener("click", () => adAddForm.classList.add("open"));
   adCancelNewProductBtn.addEventListener("click", () => adAddForm.classList.remove("open"));
 
-  const newImageFile = document.getElementById("newImageFile");
-  const newImagePreview = document.getElementById("newImagePreview");
-  const newImageStatus = document.getElementById("newImageStatus");
-  const newImageInput = document.getElementById("newImage");
-
-  newImageFile.addEventListener("change", async () => {
-    const file = newImageFile.files[0];
-    if (!file) return;
-    newImageStatus.textContent = "Subiendo imagen...";
-    try {
-      const url = await uploadProductImage(file);
-      newImageInput.value = url;
-      newImagePreview.src = url;
-      newImagePreview.style.display = "block";
-      newImageStatus.textContent = "¡Imagen subida!";
-    } catch (err) {
-      console.error(err);
-      newImageStatus.textContent = "Error al subir la imagen.";
-    }
-  });
-
   adSaveNewProductBtn.addEventListener("click", async () => {
     const val = (id) => document.getElementById(id).value.trim();
     const numOrNull = (v) => (v === "" ? null : Number(v));
@@ -841,9 +784,6 @@
 
       ["newName", "newDiamonds", "newBadge", "newImage", "newOrder", "newPrice", "newDiscountPrice", "newResellerPrice", "newResellerDiscountPrice"]
         .forEach((id) => (document.getElementById(id).value = id === "newDiamonds" || id === "newOrder" ? "1" : ""));
-      newImageFile.value = "";
-      newImagePreview.style.display = "none";
-      newImageStatus.textContent = "";
       adAddForm.classList.remove("open");
     } catch (err) {
       console.error(err);
