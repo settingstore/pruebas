@@ -10,7 +10,12 @@
 
 import { SETTINGS, BANNER, SOCIALS, COMMUNITY, NARANJAX } from "./config.js";
 import { initParticles } from "./particles.js";
-import { db, collection, query, orderBy, onSnapshot } from "./firebase-init.js";
+import { db, doc, collection, query, orderBy, onSnapshot } from "./firebase-init.js";
+
+// Datos de pago (alias/CBU): viven en Firestore (settings/payment) y se
+// editan desde admin.html → pestaña "Datos de pago". NARANJAX de
+// config.js queda solo como valor de respaldo hasta el primer guardado.
+let PAYMENT_DATA = NARANJAX;
 
 // Productos y precios de la TIENDA (no revendedores) viven en
 // Firestore, colección "products". Se editan desde admin.html →
@@ -252,9 +257,18 @@ let checkoutProduct = null;
 let checkoutBuyer = null;
 
 function renderNaranjaXData() {
-  $$(".js-pay-holder").forEach((el) => (el.textContent = NARANJAX.holder));
-  $$(".js-pay-alias").forEach((el) => (el.textContent = NARANJAX.alias));
-  $$(".js-pay-cvu").forEach((el) => (el.textContent = NARANJAX.cvu));
+  $$(".js-pay-holder").forEach((el) => (el.textContent = PAYMENT_DATA.holder));
+  $$(".js-pay-alias").forEach((el) => (el.textContent = PAYMENT_DATA.alias));
+  $$(".js-pay-cvu").forEach((el) => (el.textContent = PAYMENT_DATA.cvu));
+}
+
+// Se suscribe a settings/payment en Firestore. Si el admin todavía no
+// guardó nada desde el panel, se sigue mostrando el valor de config.js.
+function subscribePayment() {
+  onSnapshot(doc(db, "settings", "payment"), (snap) => {
+    PAYMENT_DATA = snap.exists() ? snap.data() : NARANJAX;
+    renderNaranjaXData();
+  });
 }
 
 function openCheckout(product) {
@@ -385,6 +399,7 @@ function init() {
   renderSocials();
   renderCommunity();
   renderNaranjaXData();
+  subscribePayment();
   subscribeProducts();
 
   $$(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));

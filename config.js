@@ -66,6 +66,12 @@ export const COMMUNITY = {
  * Estos datos YA NO se muestran en la página principal. Se le
  * entregan al comprador recién en el paso 2 del formulario de compra,
  * después de que carga su ID y nombre de jugador.
+ *
+ * IMPORTANTE: esto ahora es solo el valor de RESPALDO inicial. El
+ * titular/alias/CVU reales se editan desde admin.html → pestaña
+ * "Datos de pago" (quedan guardados en Firestore) y se actualizan en
+ * vivo en la web sin tocar este archivo. Estos valores de acá solo se
+ * usan si todavía no se guardó nada desde el panel.
  */
 export const NARANJAX = {
   holder: "Jonathan Jehova Lagunas Arrieta",

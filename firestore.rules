@@ -2,10 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // El código de acceso de revendedores: cualquiera puede LEERLO
-    // (lo necesita el formulario para verificar), pero solo vos
-    // (logueado como admin) podés cambiarlo.
-    match /settings/resellerAccess {
+    // Documentos de configuración (código de acceso de revendedores,
+    // datos de pago/alias/CBU, etc). Cualquiera puede LEERLOS (la
+    // tienda y el formulario de revendedores los necesitan sin login),
+    // pero solo vos (logueado como admin) podés cambiarlos.
+    match /settings/{settingId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
@@ -17,6 +18,17 @@ service cloud.firestore {
     match /resellerSessions/{sessionId} {
       allow create: if true;
       allow update: if true;
+      allow read: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    // Pedidos de revendedores: se crea uno cada vez que un revendedor
+    // completa el paso 2 del checkout (toca "Ya transferí"). Cualquiera
+    // puede crear (no requiere login, igual que las sesiones), pero
+    // solo el admin puede leer la lista completa para armar las
+    // estadísticas de ventas por revendedor.
+    match /resellerOrders/{orderId} {
+      allow create: if true;
       allow read: if request.auth != null;
       allow delete: if request.auth != null;
     }

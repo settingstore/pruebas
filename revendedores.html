@@ -220,6 +220,11 @@
   } from "./firebase-init.js";
   import { SETTINGS, NARANJAX } from "./config.js";
 
+  // Datos de pago (alias/CBU): viven en Firestore (settings/payment) y
+  // se editan desde admin.html → pestaña "Datos de pago". NARANJAX de
+  // config.js queda como valor de respaldo hasta el primer guardado.
+  let PAYMENT_DATA = NARANJAX;
+
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -238,6 +243,11 @@
   const logoutBtn = document.getElementById("rvLogoutBtn");
 
   const STORAGE_KEY = "rv_session_id";
+
+  // Se guardan acá para poder asociar cada pedido (resellerOrders) al
+  // revendedor que lo hizo, sin tener que volver a pedir el nombre.
+  let currentSessionId = null;
+  let currentResellerName = null;
 
   function setMsg(text, type) {
     msgEl.textContent = text;
@@ -272,6 +282,8 @@
   const existingSessionId = localStorage.getItem(STORAGE_KEY);
   const existingName = localStorage.getItem("rv_name");
   if (existingSessionId && existingName) {
+    currentSessionId = existingSessionId;
+    currentResellerName = existingName;
     showCatalog(existingName);
     startHeartbeat(existingSessionId);
   }
@@ -309,6 +321,8 @@
 
       localStorage.setItem(STORAGE_KEY, sessionRef.id);
       localStorage.setItem("rv_name", name);
+      currentSessionId = sessionRef.id;
+      currentResellerName = name;
 
       setMsg("¡Acceso concedido!", "ok");
       showCatalog(name);
@@ -431,9 +445,16 @@
   let checkoutBuyer = null;
 
   function renderNaranjaXData() {
-    $$(".js-pay-holder").forEach((el) => (el.textContent = NARANJAX.holder));
-    $$(".js-pay-alias").forEach((el) => (el.textContent = NARANJAX.alias));
-    $$(".js-pay-cvu").forEach((el) => (el.textContent = NARANJAX.cvu));
+    $$(".js-pay-holder").forEach((el) => (el.textContent = PAYMENT_DATA.holder));
+    $$(".js-pay-alias").forEach((el) => (el.textContent = PAYMENT_DATA.alias));
+    $$(".js-pay-cvu").forEach((el) => (el.textContent = PAYMENT_DATA.cvu));
+  }
+
+  function subscribePayment() {
+    onSnapshot(doc(db, "settings", "payment"), (snap) => {
+      PAYMENT_DATA = snap.exists() ? snap.data() : NARANJAX;
+      renderNaranjaXData();
+    });
   }
 
   function buildWhatsappLink(product, buyer) {
@@ -507,8 +528,27 @@
       step1.hidden = false;
     });
 
-    $("#checkout-send-whatsapp")?.addEventListener("click", () => {
+    $("#checkout-send-whatsapp")?.addEventListener("click", async () => {
       if (!checkoutProduct || !checkoutBuyer) return;
+
+      // Registra el pedido para las estadísticas de ventas por
+      // revendedor en admin.html (hoy / semana / mes / total). No
+      // bloquea la apertura de WhatsApp si falla el guardado.
+      try {
+        await addDoc(collection(db, "resellerOrders"), {
+          resellerSessionId: currentSessionId || null,
+          resellerName: currentResellerName || "—",
+          productId: checkoutProduct.id || null,
+          productName: checkoutProduct.name,
+          price: finalPrice(checkoutProduct),
+          buyerUid: checkoutBuyer.uid,
+          buyerNickname: checkoutBuyer.nickname,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error("No se pudo registrar el pedido:", err);
+      }
+
       window.open(buildWhatsappLink(checkoutProduct, checkoutBuyer), "_blank", "noopener");
       closeCheckout();
     });
@@ -547,6 +587,7 @@
   }
 
   renderNaranjaXData();
+  subscribePayment();
   bindCheckout();
   bindCopyButtons();
 </script>

@@ -100,7 +100,7 @@
     justify-content:space-between; align-items:center; gap: 12px; flex-wrap: wrap;
   }
   .ad-prod-table-wrap { overflow-x: auto; }
-  #adProductsTable { min-width: 980px; }
+  #adProductsTable { min-width: 1080px; }
   #adProductsTable th.grp-store { border-left: 2px solid rgba(0,168,255,0.35); }
   #adProductsTable th.grp-reseller { border-left: 2px solid rgba(0,217,255,0.5); }
   #adProductsTable td.grp-store { border-left: 2px solid rgba(0,168,255,0.2); }
@@ -153,7 +153,9 @@
 
   <div class="ad-tabs">
     <button type="button" class="ad-tab active" id="tabBtnRevendedores">Revendedores</button>
+    <button type="button" class="ad-tab" id="tabBtnVentas">Ventas revendedores</button>
     <button type="button" class="ad-tab" id="tabBtnProductos">Productos y precios</button>
+    <button type="button" class="ad-tab" id="tabBtnPagos">Datos de pago</button>
   </div>
 
   <!-- ===== TAB: REVENDEDORES ===== -->
@@ -187,6 +189,40 @@
     </table>
   </div>
 
+  <!-- ===== TAB: VENTAS REVENDEDORES ===== -->
+  <div class="ad-panel" id="panelVentas">
+    <p style="font-size:0.8rem; color:var(--c-gray-soft); max-width:620px; margin-bottom:16px;">
+      Se cuenta un "pedido" cada vez que un revendedor completa el paso 2 del checkout y toca
+      "Ya transferí, enviar comprobante" en /revendedores.html. El monto es el precio de
+      revendedor que tenía el producto en ese momento.
+    </p>
+
+    <div class="ad-stats" id="ventasResumen">
+      <div class="ad-stat"><div class="n" id="ventasHoyN">0</div><div class="l">Pedidos hoy</div></div>
+      <div class="ad-stat"><div class="n" id="ventasSemanaN">0</div><div class="l">Pedidos esta semana</div></div>
+      <div class="ad-stat"><div class="n" id="ventasMesN">0</div><div class="l">Pedidos este mes</div></div>
+      <div class="ad-stat"><div class="n" id="ventasTotalN">0</div><div class="l">Pedidos históricos</div></div>
+    </div>
+
+    <div class="ad-prod-table-wrap">
+      <table id="adVentasTable">
+        <thead>
+          <tr>
+            <th>Revendedor</th>
+            <th>Pedidos hoy</th>
+            <th>Pedidos semana</th>
+            <th>Pedidos mes</th>
+            <th>Pedidos total</th>
+            <th>Monto vendido (total)</th>
+          </tr>
+        </thead>
+        <tbody id="adVentasTableBody">
+          <tr><td colspan="6" class="ad-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ===== TAB: PRODUCTOS Y PRECIOS ===== -->
   <div class="ad-panel" id="panelProductos">
     <div class="ad-import-box" id="adImportBox" style="display:none;">
@@ -207,8 +243,18 @@
         <div><label>Nombre</label><input class="ad-mini-input" id="newName" placeholder="Ej: 500 Diamantes" /></div>
         <div><label>Diamantes (0 si es un pase)</label><input class="ad-mini-input" id="newDiamonds" type="number" value="0" /></div>
         <div><label>Badge (si no son diamantes)</label><input class="ad-mini-input" id="newBadge" placeholder="Ej: PASE" /></div>
-        <div><label>Imagen (nombre de archivo)</label><input class="ad-mini-input" id="newImage" placeholder="Ej: product-500.jpg" /></div>
         <div><label>Orden</label><input class="ad-mini-input" id="newOrder" type="number" value="1" /></div>
+      </div>
+      <div class="ad-section-label">Imagen del producto</div>
+      <p style="font-size:0.75rem; color:var(--c-gray-soft); margin: 0 0 8px;">
+        Recomendado: foto cuadrada (1:1) o 4:3, mínimo 800×800 px, formato JPG o WEBP y menos
+        de 500 KB para que cargue rápido y se vea nítida en cualquier pantalla.
+      </p>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:14px;">
+        <img id="newImagePreview" src="" alt="" style="width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.12); display:none;" />
+        <input type="file" id="newImageFile" accept="image/*" class="ad-mini-input" style="max-width:260px;" />
+        <span id="newImageStatus" style="font-size:0.78rem; color:var(--c-gray-soft);"></span>
+        <input type="hidden" id="newImage" value="" />
       </div>
       <div class="ad-section-label">Precio tienda</div>
       <div class="ad-add-grid">
@@ -230,6 +276,7 @@
       <table id="adProductsTable">
         <thead>
           <tr>
+            <th>Imagen</th>
             <th>Producto</th>
             <th>Orden</th>
             <th>Visible</th>
@@ -241,19 +288,44 @@
           </tr>
         </thead>
         <tbody id="adProductsTableBody">
-          <tr><td colspan="8" class="ad-empty">Cargando...</td></tr>
+          <tr><td colspan="9" class="ad-empty">Cargando...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ===== TAB: DATOS DE PAGO ===== -->
+  <div class="ad-panel" id="panelPagos">
+    <p style="font-size:0.8rem; color:var(--c-gray-soft); max-width:560px; margin-bottom:16px;">
+      Estos son los datos que se le muestran al comprador en el paso 2 del checkout (tienda y
+      revendedores), con botones para copiar. Se actualizan al instante en el sitio, sin volver
+      a publicar nada.
+    </p>
+    <div class="ad-code-box" style="flex-direction:column; align-items:stretch; gap:14px;">
+      <div class="ad-field">
+        <label for="payHolder">Titular</label>
+        <input type="text" id="payHolder" placeholder="Nombre y apellido" />
+      </div>
+      <div class="ad-field">
+        <label for="payAlias">Alias</label>
+        <input type="text" id="payAlias" placeholder="Ej: settings88" />
+      </div>
+      <div class="ad-field">
+        <label for="payCvu">CVU / CBU</label>
+        <input type="text" id="payCvu" placeholder="Ej: 4530000800010888788882" />
+      </div>
+      <button class="ad-btn" id="paySaveBtn" style="width:auto; align-self:flex-start; padding:12px 24px;">Guardar datos de pago</button>
     </div>
   </div>
 </div>
 
 <script type="module">
   import {
-    db, auth, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
+    db, auth, storage, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
     addDoc, onSnapshot, query, orderBy, signInWithEmailAndPassword,
-    onAuthStateChanged, signOut,
+    onAuthStateChanged, signOut, ref, uploadBytes, getDownloadURL,
   } from "./firebase-init.js";
+  import { NARANJAX } from "./config.js";
 
   const loginWrap = document.getElementById("adLoginWrap");
   const panel = document.getElementById("adPanel");
@@ -288,6 +360,8 @@
       loadCode();
       listenSessions();
       listenProducts();
+      listenVentas();
+      loadPayment();
     } else {
       loginWrap.style.display = "flex";
       panel.style.display = "none";
@@ -297,21 +371,28 @@
   /* ================= TABS ================= */
 
   const tabBtnRevendedores = document.getElementById("tabBtnRevendedores");
+  const tabBtnVentas = document.getElementById("tabBtnVentas");
   const tabBtnProductos = document.getElementById("tabBtnProductos");
+  const tabBtnPagos = document.getElementById("tabBtnPagos");
   const panelRevendedores = document.getElementById("panelRevendedores");
+  const panelVentas = document.getElementById("panelVentas");
   const panelProductos = document.getElementById("panelProductos");
+  const panelPagos = document.getElementById("panelPagos");
 
-  tabBtnRevendedores.addEventListener("click", () => {
-    tabBtnRevendedores.classList.add("active");
-    tabBtnProductos.classList.remove("active");
-    panelRevendedores.classList.add("active");
-    panelProductos.classList.remove("active");
-  });
-  tabBtnProductos.addEventListener("click", () => {
-    tabBtnProductos.classList.add("active");
-    tabBtnRevendedores.classList.remove("active");
-    panelProductos.classList.add("active");
-    panelRevendedores.classList.remove("active");
+  const allTabs = [
+    [tabBtnRevendedores, panelRevendedores],
+    [tabBtnVentas, panelVentas],
+    [tabBtnProductos, panelProductos],
+    [tabBtnPagos, panelPagos],
+  ];
+
+  allTabs.forEach(([btn, panel]) => {
+    btn.addEventListener("click", () => {
+      allTabs.forEach(([b, p]) => {
+        b.classList.toggle("active", b === btn);
+        p.classList.toggle("active", p === panel);
+      });
+    });
   });
 
   async function loadCode() {
@@ -326,6 +407,141 @@
     codeSaveBtn.textContent = "¡Guardado!";
     setTimeout(() => (codeSaveBtn.textContent = "Guardar código"), 1500);
   });
+
+  /* ================= DATOS DE PAGO (ALIAS / CBU) ================= */
+  // Viven en Firestore (settings/payment) para poder editarlos sin
+  // tocar código. Si todavía no se guardó nunca, se precargan los
+  // valores que había hardcodeados en config.js como punto de partida.
+
+  const payHolderInput = document.getElementById("payHolder");
+  const payAliasInput = document.getElementById("payAlias");
+  const payCvuInput = document.getElementById("payCvu");
+  const paySaveBtn = document.getElementById("paySaveBtn");
+
+  async function loadPayment() {
+    const ref = doc(db, "settings", "payment");
+    const snap = await getDoc(ref);
+    const data = snap.exists() ? snap.data() : NARANJAX;
+    payHolderInput.value = data.holder || "";
+    payAliasInput.value = data.alias || "";
+    payCvuInput.value = data.cvu || "";
+  }
+
+  paySaveBtn.addEventListener("click", async () => {
+    const ref = doc(db, "settings", "payment");
+    paySaveBtn.disabled = true;
+    try {
+      await setDoc(
+        ref,
+        {
+          holder: payHolderInput.value.trim(),
+          alias: payAliasInput.value.trim(),
+          cvu: payCvuInput.value.trim(),
+        },
+        { merge: true }
+      );
+      paySaveBtn.textContent = "¡Guardado!";
+    } catch (err) {
+      console.error(err);
+      paySaveBtn.textContent = "Error";
+    } finally {
+      setTimeout(() => {
+        paySaveBtn.textContent = "Guardar datos de pago";
+        paySaveBtn.disabled = false;
+      }, 1500);
+    }
+  });
+
+  /* ================= VENTAS DE REVENDEDORES ================= */
+  // Cada pedido se guarda en "resellerOrders" cuando el revendedor
+  // termina el paso 2 del checkout en /revendedores.html. Acá se
+  // agrupan por nombre de revendedor y se calculan los totales de
+  // hoy / semana / mes / histórico.
+
+  const adVentasTableBody = document.getElementById("adVentasTableBody");
+  const ventasHoyN = document.getElementById("ventasHoyN");
+  const ventasSemanaN = document.getElementById("ventasSemanaN");
+  const ventasMesN = document.getElementById("ventasMesN");
+  const ventasTotalN = document.getElementById("ventasTotalN");
+
+  function startOfToday() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  function startOfWeek() {
+    const d = startOfToday();
+    const day = d.getDay(); // 0 = domingo
+    const diff = day === 0 ? 6 : day - 1; // semana arranca el lunes
+    d.setDate(d.getDate() - diff);
+    return d;
+  }
+  function startOfMonth() {
+    const d = startOfToday();
+    d.setDate(1);
+    return d;
+  }
+
+  function listenVentas() {
+    onSnapshot(
+      query(collection(db, "resellerOrders"), orderBy("createdAt", "desc")),
+      (snap) => {
+        const today = startOfToday();
+        const week = startOfWeek();
+        const month = startOfMonth();
+
+        const byReseller = new Map();
+        let totalHoy = 0, totalSemana = 0, totalMes = 0, totalTodo = 0;
+
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
+          const createdMs = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().getTime() : 0;
+          const name = d.resellerName || "—";
+          const price = Number(d.price) || 0;
+
+          if (!byReseller.has(name)) {
+            byReseller.set(name, { hoy: 0, semana: 0, mes: 0, total: 0, monto: 0 });
+          }
+          const r = byReseller.get(name);
+          r.total++;
+          r.monto += price;
+          totalTodo++;
+          if (createdMs >= today.getTime()) { r.hoy++; totalHoy++; }
+          if (createdMs >= week.getTime()) { r.semana++; totalSemana++; }
+          if (createdMs >= month.getTime()) { r.mes++; totalMes++; }
+        });
+
+        ventasHoyN.textContent = String(totalHoy);
+        ventasSemanaN.textContent = String(totalSemana);
+        ventasMesN.textContent = String(totalMes);
+        ventasTotalN.textContent = String(totalTodo);
+
+        if (!byReseller.size) {
+          adVentasTableBody.innerHTML = '<tr><td colspan="6" class="ad-empty">Todavía no hay pedidos registrados.</td></tr>';
+          return;
+        }
+
+        const rows = Array.from(byReseller.entries()).sort((a, b) => b[1].total - a[1].total);
+        adVentasTableBody.innerHTML = rows
+          .map(
+            ([name, r]) => `
+          <tr>
+            <td>${escapeHtml(name)}</td>
+            <td>${r.hoy}</td>
+            <td>${r.semana}</td>
+            <td>${r.mes}</td>
+            <td>${r.total}</td>
+            <td>${formatPrice(r.monto)}</td>
+          </tr>`
+          )
+          .join("");
+      }
+    );
+  }
+
+  function formatPrice(value) {
+    return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value || 0);
+  }
 
   function fmt(ts) {
     if (!ts) return "—";
@@ -398,6 +614,18 @@
   let productsById = new Map();
   let resellerPricingById = new Map();
 
+  /* -------- Subida de imágenes a Firebase Storage -------- */
+  // Sube el archivo a /products/<timestamp>-<nombre> y devuelve la URL
+  // pública final que queda guardada en el campo "image" del producto
+  // (reemplaza tener que subir la foto al repo de GitHub a mano).
+  async function uploadProductImage(file) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    const path = `products/${Date.now()}-${safeName}`;
+    const storageRef = ref(storage, path);
+    await uploadBytes(storageRef, file);
+    return getDownloadURL(storageRef);
+  }
+
   // Datos originales que estaban hardcodeados en config.js — solo se
   // usan para el importador inicial (una vez), no se vuelven a tocar.
   const LEGACY_PRODUCTS = [
@@ -424,7 +652,7 @@
 
   function renderProductsTable() {
     if (!productsById.size) {
-      adProductsTableBody.innerHTML = '<tr><td colspan="8" class="ad-empty">Todavía no hay productos cargados.</td></tr>';
+      adProductsTableBody.innerHTML = '<tr><td colspan="9" class="ad-empty">Todavía no hay productos cargados.</td></tr>';
       return;
     }
 
@@ -435,6 +663,15 @@
         const rp = resellerPricingById.get(p.id) || {};
         return `
           <tr data-id="${p.id}">
+            <td>
+              <div style="display:flex; flex-direction:column; align-items:flex-start; gap:6px;">
+                ${p.image
+                  ? `<img src="${escapeHtml(p.image)}" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:6px; border:1px solid rgba(255,255,255,0.12);" />`
+                  : `<div style="width:44px; height:44px; border-radius:6px; border:1px dashed rgba(255,255,255,0.2);"></div>`}
+                <input type="file" accept="image/*" class="js-row-image-file" style="font-size:0.7rem; max-width:110px;" />
+                <span class="js-row-image-status" style="font-size:0.7rem; color:var(--c-gray-soft);"></span>
+              </div>
+            </td>
             <td><input class="ad-name-input js-f-name" value="${escapeHtml(p.name || "")}" /></td>
             <td><input class="ad-mini-input js-f-order" type="number" value="${p.order ?? 0}" style="width:70px;" /></td>
             <td class="ad-checkbox-row"><input type="checkbox" class="js-f-visible" ${p.visible !== false ? "checked" : ""} /></td>
@@ -488,6 +725,25 @@
       });
     });
 
+    adProductsTableBody.querySelectorAll(".js-row-image-file").forEach((input) => {
+      input.addEventListener("change", async () => {
+        const file = input.files[0];
+        if (!file) return;
+        const tr = input.closest("tr");
+        const id = tr.dataset.id;
+        const statusEl = tr.querySelector(".js-row-image-status");
+        statusEl.textContent = "Subiendo...";
+        try {
+          const url = await uploadProductImage(file);
+          await updateDoc(doc(db, "products", id), { image: url });
+          statusEl.textContent = "¡Listo!";
+        } catch (err) {
+          console.error(err);
+          statusEl.textContent = "Error";
+        }
+      });
+    });
+
     adProductsTableBody.querySelectorAll(".js-del-product").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const tr = btn.closest("tr");
@@ -535,6 +791,27 @@
   adAddProductBtn.addEventListener("click", () => adAddForm.classList.add("open"));
   adCancelNewProductBtn.addEventListener("click", () => adAddForm.classList.remove("open"));
 
+  const newImageFile = document.getElementById("newImageFile");
+  const newImagePreview = document.getElementById("newImagePreview");
+  const newImageStatus = document.getElementById("newImageStatus");
+  const newImageInput = document.getElementById("newImage");
+
+  newImageFile.addEventListener("change", async () => {
+    const file = newImageFile.files[0];
+    if (!file) return;
+    newImageStatus.textContent = "Subiendo imagen...";
+    try {
+      const url = await uploadProductImage(file);
+      newImageInput.value = url;
+      newImagePreview.src = url;
+      newImagePreview.style.display = "block";
+      newImageStatus.textContent = "¡Imagen subida!";
+    } catch (err) {
+      console.error(err);
+      newImageStatus.textContent = "Error al subir la imagen.";
+    }
+  });
+
   adSaveNewProductBtn.addEventListener("click", async () => {
     const val = (id) => document.getElementById(id).value.trim();
     const numOrNull = (v) => (v === "" ? null : Number(v));
@@ -564,6 +841,9 @@
 
       ["newName", "newDiamonds", "newBadge", "newImage", "newOrder", "newPrice", "newDiscountPrice", "newResellerPrice", "newResellerDiscountPrice"]
         .forEach((id) => (document.getElementById(id).value = id === "newDiamonds" || id === "newOrder" ? "1" : ""));
+      newImageFile.value = "";
+      newImagePreview.style.display = "none";
+      newImageStatus.textContent = "";
       adAddForm.classList.remove("open");
     } catch (err) {
       console.error(err);
