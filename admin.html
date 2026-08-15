@@ -81,6 +81,48 @@
   .dot.offline { background: #555; }
   .ad-del { background: transparent; border: none; color: #ff6b6b; cursor: pointer; font-size: 0.8rem; }
   .ad-empty { text-align:center; padding: 30px; color: var(--c-gray-soft); }
+
+  /* Tabs */
+  .ad-tabs { display:flex; gap: 8px; margin-bottom: 24px; }
+  .ad-tab {
+    padding: 9px 18px; border-radius: 999px; font-size: 0.85rem; font-weight: 600;
+    background: transparent; border: 1px solid rgba(255,255,255,0.14); color: var(--c-gray-soft); cursor: pointer;
+  }
+  .ad-tab.active { background: var(--c-blue); border-color: var(--c-blue); color: var(--c-bg); }
+  .ad-panel { display: none; }
+  .ad-panel.active { display: block; }
+
+  /* Productos */
+  .ad-prod-toolbar { display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .ad-import-box {
+    background: rgba(0,168,255,0.08); border: 1px dashed rgba(0,168,255,0.4); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 20px; font-size: 0.85rem; color: var(--c-gray-soft); display:flex;
+    justify-content:space-between; align-items:center; gap: 12px; flex-wrap: wrap;
+  }
+  .ad-prod-table-wrap { overflow-x: auto; }
+  #adProductsTable { min-width: 980px; }
+  #adProductsTable th.grp-store { border-left: 2px solid rgba(0,168,255,0.35); }
+  #adProductsTable th.grp-reseller { border-left: 2px solid rgba(0,217,255,0.5); }
+  #adProductsTable td.grp-store { border-left: 2px solid rgba(0,168,255,0.2); }
+  #adProductsTable td.grp-reseller { border-left: 2px solid rgba(0,217,255,0.3); }
+  .ad-mini-input {
+    width: 100%; min-width: 90px; padding: 7px 9px; background: var(--c-bg-alt);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: var(--c-white); font-size: 0.85rem;
+  }
+  .ad-mini-input:focus { outline:none; border-color: var(--c-blue); }
+  .ad-name-input { width: 100%; min-width: 140px; padding: 7px 9px; background: var(--c-bg-alt);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: var(--c-white); font-size: 0.85rem; }
+  .ad-save-row { background: var(--c-blue); color: var(--c-bg); border:none; border-radius: 8px; padding: 7px 12px; font-size: 0.78rem; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .ad-save-row:hover { background: var(--c-blue-glow); }
+  .ad-add-form {
+    background: var(--c-card); border: var(--border-glow); border-radius: var(--radius); padding: 20px;
+    margin-bottom: 20px; display:none;
+  }
+  .ad-add-form.open { display:block; }
+  .ad-add-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin-bottom: 14px; }
+  .ad-add-grid label { display:block; font-size: 0.75rem; color: var(--c-gray-soft); margin-bottom: 4px; }
+  .ad-section-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--c-blue-glow); margin: 6px 0 2px; }
+  .ad-checkbox-row { display:flex; align-items:center; gap: 8px; font-size: 0.85rem; color: var(--c-gray-soft); }
 </style>
 </head>
 <body>
@@ -105,43 +147,111 @@
 <!-- PANEL -->
 <div class="ad-wrap" id="adPanel">
   <div class="ad-header">
-    <h1>Revendedores conectados</h1>
+    <h1>Panel Admin</h1>
     <button class="ad-btn secondary ad-logout" id="adLogoutBtn">Cerrar sesión</button>
   </div>
 
-  <div class="ad-code-box">
-    <div class="ad-field">
-      <label for="adCodeInput">Código de acceso actual (revendedores / clan)</label>
-      <input type="text" id="adCodeInput" placeholder="Cargando..." />
+  <div class="ad-tabs">
+    <button type="button" class="ad-tab active" id="tabBtnRevendedores">Revendedores</button>
+    <button type="button" class="ad-tab" id="tabBtnProductos">Productos y precios</button>
+  </div>
+
+  <!-- ===== TAB: REVENDEDORES ===== -->
+  <div class="ad-panel active" id="panelRevendedores">
+    <div class="ad-code-box">
+      <div class="ad-field">
+        <label for="adCodeInput">Código de acceso actual (revendedores / clan)</label>
+        <input type="text" id="adCodeInput" placeholder="Cargando..." />
+      </div>
+      <button class="ad-btn" id="adCodeSaveBtn">Guardar código</button>
     </div>
-    <button class="ad-btn" id="adCodeSaveBtn">Guardar código</button>
+
+    <div class="ad-stats">
+      <div class="ad-stat"><div class="n" id="statTotal">0</div><div class="l">Total registrados</div></div>
+      <div class="ad-stat"><div class="n" id="statOnline">0</div><div class="l">En línea ahora</div></div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Estado</th>
+          <th>Nombre</th>
+          <th>Conectado desde</th>
+          <th>Última actividad</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="adTableBody">
+        <tr><td colspan="5" class="ad-empty">Cargando...</td></tr>
+      </tbody>
+    </table>
   </div>
 
-  <div class="ad-stats">
-    <div class="ad-stat"><div class="n" id="statTotal">0</div><div class="l">Total registrados</div></div>
-    <div class="ad-stat"><div class="n" id="statOnline">0</div><div class="l">En línea ahora</div></div>
-  </div>
+  <!-- ===== TAB: PRODUCTOS Y PRECIOS ===== -->
+  <div class="ad-panel" id="panelProductos">
+    <div class="ad-import-box" id="adImportBox" style="display:none;">
+      <span>Todavía no cargaste productos en Firestore. Podés importar los 7 productos actuales (los mismos que estaban en config.js) para arrancar y después editarlos acá.</span>
+      <button class="ad-btn" id="adImportBtn" style="width:auto; white-space:nowrap;">Importar productos actuales</button>
+    </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Estado</th>
-        <th>Nombre</th>
-        <th>Conectado desde</th>
-        <th>Última actividad</th>
-        <th></th>
-      </tr>
-    </thead>
-    <tbody id="adTableBody">
-      <tr><td colspan="5" class="ad-empty">Cargando...</td></tr>
-    </tbody>
-  </table>
+    <div class="ad-prod-toolbar">
+      <p style="font-size:0.8rem; color:var(--c-gray-soft); max-width:520px;">
+        Precio tienda = lo que ve cualquier visitante en la web. Precio revendedor = lo que ve solo quien entra con el código en /revendedores.html. Son dos columnas separadas: cambiar una no toca la otra.
+      </p>
+      <button class="ad-btn" id="adAddProductBtn" style="width:auto;">+ Agregar producto</button>
+    </div>
+
+    <div class="ad-add-form" id="adAddForm">
+      <div class="ad-section-label">Producto nuevo</div>
+      <div class="ad-add-grid">
+        <div><label>Nombre</label><input class="ad-mini-input" id="newName" placeholder="Ej: 500 Diamantes" /></div>
+        <div><label>Diamantes (0 si es un pase)</label><input class="ad-mini-input" id="newDiamonds" type="number" value="0" /></div>
+        <div><label>Badge (si no son diamantes)</label><input class="ad-mini-input" id="newBadge" placeholder="Ej: PASE" /></div>
+        <div><label>Imagen (nombre de archivo)</label><input class="ad-mini-input" id="newImage" placeholder="Ej: product-500.jpg" /></div>
+        <div><label>Orden</label><input class="ad-mini-input" id="newOrder" type="number" value="1" /></div>
+      </div>
+      <div class="ad-section-label">Precio tienda</div>
+      <div class="ad-add-grid">
+        <div><label>Precio</label><input class="ad-mini-input" id="newPrice" type="number" placeholder="0" /></div>
+        <div><label>Precio con descuento (opcional)</label><input class="ad-mini-input" id="newDiscountPrice" type="number" placeholder="" /></div>
+      </div>
+      <div class="ad-section-label">Precio revendedor</div>
+      <div class="ad-add-grid">
+        <div><label>Precio</label><input class="ad-mini-input" id="newResellerPrice" type="number" placeholder="0" /></div>
+        <div><label>Precio con descuento (opcional)</label><input class="ad-mini-input" id="newResellerDiscountPrice" type="number" placeholder="" /></div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top: 6px;">
+        <button class="ad-btn" id="adSaveNewProductBtn" style="width:auto;">Crear producto</button>
+        <button class="ad-btn secondary" id="adCancelNewProductBtn" style="width:auto;">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="ad-prod-table-wrap">
+      <table id="adProductsTable">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Orden</th>
+            <th>Visible</th>
+            <th class="grp-store">Precio tienda</th>
+            <th class="grp-store">Descuento tienda</th>
+            <th class="grp-reseller">Precio revendedor</th>
+            <th class="grp-reseller">Descuento revendedor</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="adProductsTableBody">
+          <tr><td colspan="8" class="ad-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script type="module">
   import {
     db, auth, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
-    onSnapshot, query, orderBy, signInWithEmailAndPassword,
+    addDoc, onSnapshot, query, orderBy, signInWithEmailAndPassword,
     onAuthStateChanged, signOut,
   } from "./firebase-init.js";
 
@@ -177,10 +287,31 @@
       panel.style.display = "block";
       loadCode();
       listenSessions();
+      listenProducts();
     } else {
       loginWrap.style.display = "flex";
       panel.style.display = "none";
     }
+  });
+
+  /* ================= TABS ================= */
+
+  const tabBtnRevendedores = document.getElementById("tabBtnRevendedores");
+  const tabBtnProductos = document.getElementById("tabBtnProductos");
+  const panelRevendedores = document.getElementById("panelRevendedores");
+  const panelProductos = document.getElementById("panelProductos");
+
+  tabBtnRevendedores.addEventListener("click", () => {
+    tabBtnRevendedores.classList.add("active");
+    tabBtnProductos.classList.remove("active");
+    panelRevendedores.classList.add("active");
+    panelProductos.classList.remove("active");
+  });
+  tabBtnProductos.addEventListener("click", () => {
+    tabBtnProductos.classList.add("active");
+    tabBtnRevendedores.classList.remove("active");
+    panelProductos.classList.add("active");
+    panelRevendedores.classList.remove("active");
   });
 
   async function loadCode() {
@@ -250,6 +381,197 @@
     div.textContent = str;
     return div.innerHTML;
   }
+
+  /* ================= PRODUCTOS Y PRECIOS ================= */
+  // "products" = catálogo + precio de TIENDA. "resellerPricing" = precio
+  // de REVENDEDORES, colección aparte con el mismo ID de documento que
+  // el producto, para que nunca se mezclen entre sí.
+
+  const adProductsTableBody = document.getElementById("adProductsTableBody");
+  const adImportBox = document.getElementById("adImportBox");
+  const adImportBtn = document.getElementById("adImportBtn");
+  const adAddProductBtn = document.getElementById("adAddProductBtn");
+  const adAddForm = document.getElementById("adAddForm");
+  const adSaveNewProductBtn = document.getElementById("adSaveNewProductBtn");
+  const adCancelNewProductBtn = document.getElementById("adCancelNewProductBtn");
+
+  let productsById = new Map();
+  let resellerPricingById = new Map();
+
+  // Datos originales que estaban hardcodeados en config.js — solo se
+  // usan para el importador inicial (una vez), no se vuelven a tocar.
+  const LEGACY_PRODUCTS = [
+    { name: "110 Diamantes", diamonds: 110, price: 1300, discountPrice: 1160, image: "product-110.jpg", order: 1 },
+    { name: "341 Diamantes", diamonds: 341, price: 3800, discountPrice: 3490, image: "product-341.jpg", order: 2 },
+    { name: "572 Diamantes", diamonds: 572, price: 6000, discountPrice: 5850, image: "product-572.jpg", order: 3 },
+    { name: "1.166 Diamantes", diamonds: 1166, price: 11800, discountPrice: 10850, image: "product-1166.jpg", order: 4 },
+    { name: "2.398 Diamantes", diamonds: 2398, price: 22000, discountPrice: 21250, image: "product-2398.jpg", order: 5 },
+    { name: "6.160 Diamantes", diamonds: 6160, price: 56500, discountPrice: 54900, image: "product-6160.jpg", order: 6 },
+    { name: "Pase Booyah", diamonds: 0, badge: "PASE", price: 2800, image: "product-booyah.jpg", order: 7 },
+  ];
+
+  function listenProducts() {
+    onSnapshot(query(collection(db, "products"), orderBy("order")), (snap) => {
+      productsById = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
+      adImportBox.style.display = productsById.size === 0 ? "flex" : "none";
+      renderProductsTable();
+    });
+    onSnapshot(collection(db, "resellerPricing"), (snap) => {
+      resellerPricingById = new Map(snap.docs.map((d) => [d.id, d.data()]));
+      renderProductsTable();
+    });
+  }
+
+  function renderProductsTable() {
+    if (!productsById.size) {
+      adProductsTableBody.innerHTML = '<tr><td colspan="8" class="ad-empty">Todavía no hay productos cargados.</td></tr>';
+      return;
+    }
+
+    const rows = Array.from(productsById.values()).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    adProductsTableBody.innerHTML = rows
+      .map((p) => {
+        const rp = resellerPricingById.get(p.id) || {};
+        return `
+          <tr data-id="${p.id}">
+            <td><input class="ad-name-input js-f-name" value="${escapeHtml(p.name || "")}" /></td>
+            <td><input class="ad-mini-input js-f-order" type="number" value="${p.order ?? 0}" style="width:70px;" /></td>
+            <td class="ad-checkbox-row"><input type="checkbox" class="js-f-visible" ${p.visible !== false ? "checked" : ""} /></td>
+            <td class="grp-store"><input class="ad-mini-input js-f-price" type="number" value="${p.price ?? ""}" /></td>
+            <td class="grp-store"><input class="ad-mini-input js-f-discountPrice" type="number" value="${p.discountPrice ?? ""}" placeholder="—" /></td>
+            <td class="grp-reseller"><input class="ad-mini-input js-f-resellerPrice" type="number" value="${rp.price ?? ""}" /></td>
+            <td class="grp-reseller"><input class="ad-mini-input js-f-resellerDiscountPrice" type="number" value="${rp.discountPrice ?? ""}" placeholder="—" /></td>
+            <td style="display:flex; gap:6px;">
+              <button class="ad-save-row js-save-product">Guardar</button>
+              <button class="ad-del js-del-product">Eliminar</button>
+            </td>
+          </tr>`;
+      })
+      .join("");
+
+    adProductsTableBody.querySelectorAll(".js-save-product").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        const val = (sel) => tr.querySelector(sel).value.trim();
+        const numOrNull = (v) => (v === "" ? null : Number(v));
+
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        try {
+          await updateDoc(doc(db, "products", id), {
+            name: val(".js-f-name"),
+            order: Number(val(".js-f-order")) || 0,
+            visible: tr.querySelector(".js-f-visible").checked,
+            price: Number(val(".js-f-price")) || 0,
+            discountPrice: numOrNull(val(".js-f-discountPrice")),
+          });
+          await setDoc(
+            doc(db, "resellerPricing", id),
+            {
+              price: Number(val(".js-f-resellerPrice")) || 0,
+              discountPrice: numOrNull(val(".js-f-resellerDiscountPrice")),
+            },
+            { merge: true }
+          );
+          btn.textContent = "¡Guardado!";
+        } catch (err) {
+          console.error(err);
+          btn.textContent = "Error";
+        } finally {
+          setTimeout(() => {
+            btn.textContent = "Guardar";
+            btn.disabled = false;
+          }, 1200);
+        }
+      });
+    });
+
+    adProductsTableBody.querySelectorAll(".js-del-product").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        const name = tr.querySelector(".js-f-name").value;
+        if (!confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
+        await deleteDoc(doc(db, "products", id));
+        await deleteDoc(doc(db, "resellerPricing", id)).catch(() => {});
+      });
+    });
+  }
+
+  adImportBtn.addEventListener("click", async () => {
+    if (!confirm("Esto va a crear los 7 productos originales en Firestore. Usalo solo una vez. ¿Continuar?")) return;
+    adImportBtn.disabled = true;
+    adImportBtn.textContent = "Importando...";
+    try {
+      for (const p of LEGACY_PRODUCTS) {
+        const ref = await addDoc(collection(db, "products"), {
+          name: p.name,
+          diamonds: p.diamonds,
+          badge: p.badge || "",
+          image: p.image || "",
+          order: p.order,
+          visible: true,
+          price: p.price,
+          discountPrice: p.discountPrice ?? null,
+        });
+        // Arranca con el mismo precio que la tienda; después lo ajustás
+        // vos a mano desde esta misma tabla.
+        await setDoc(doc(db, "resellerPricing", ref.id), {
+          price: p.price,
+          discountPrice: p.discountPrice ?? null,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un error importando. Revisá la consola.");
+    } finally {
+      adImportBtn.disabled = false;
+      adImportBtn.textContent = "Importar productos actuales";
+    }
+  });
+
+  adAddProductBtn.addEventListener("click", () => adAddForm.classList.add("open"));
+  adCancelNewProductBtn.addEventListener("click", () => adAddForm.classList.remove("open"));
+
+  adSaveNewProductBtn.addEventListener("click", async () => {
+    const val = (id) => document.getElementById(id).value.trim();
+    const numOrNull = (v) => (v === "" ? null : Number(v));
+
+    const name = val("newName");
+    if (!name) {
+      alert("Ponele un nombre al producto.");
+      return;
+    }
+
+    adSaveNewProductBtn.disabled = true;
+    try {
+      const ref = await addDoc(collection(db, "products"), {
+        name,
+        diamonds: Number(val("newDiamonds")) || 0,
+        badge: val("newBadge"),
+        image: val("newImage"),
+        order: Number(val("newOrder")) || 0,
+        visible: true,
+        price: Number(val("newPrice")) || 0,
+        discountPrice: numOrNull(val("newDiscountPrice")),
+      });
+      await setDoc(doc(db, "resellerPricing", ref.id), {
+        price: Number(val("newResellerPrice")) || 0,
+        discountPrice: numOrNull(val("newResellerDiscountPrice")),
+      });
+
+      ["newName", "newDiamonds", "newBadge", "newImage", "newOrder", "newPrice", "newDiscountPrice", "newResellerPrice", "newResellerDiscountPrice"]
+        .forEach((id) => (document.getElementById(id).value = id === "newDiamonds" || id === "newOrder" ? "1" : ""));
+      adAddForm.classList.remove("open");
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un error creando el producto. Revisá la consola.");
+    } finally {
+      adSaveNewProductBtn.disabled = false;
+    }
+  });
 </script>
 
 </body>

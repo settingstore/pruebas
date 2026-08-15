@@ -8,8 +8,15 @@
  * ------------------------------------------------------------------
  */
 
-import { SETTINGS, BANNER, SOCIALS, COMMUNITY, NARANJAX, PRODUCTS } from "./config.js";
+import { SETTINGS, BANNER, SOCIALS, COMMUNITY, NARANJAX } from "./config.js";
 import { initParticles } from "./particles.js";
+import { db, collection, query, orderBy, onSnapshot } from "./firebase-init.js";
+
+// Productos y precios de la TIENDA (no revendedores) viven en
+// Firestore, colección "products". Se editan desde admin.html →
+// pestaña "Productos", sin tocar código. Esta lista se mantiene
+// actualizada en vivo con onSnapshot.
+let PRODUCTS = [];
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -164,6 +171,28 @@ function renderProducts() {
       if (product) openCheckout(product);
     });
   });
+}
+
+// Se suscribe a la colección "products" de Firestore (precios de la
+// tienda) y vuelve a renderizar la grilla cada vez que admin.html
+// guarda un cambio, sin que el visitante tenga que recargar la
+// página.
+function subscribeProducts() {
+  const grid = $("#products-grid");
+  const q = query(collection(db, "products"), orderBy("order"));
+  onSnapshot(
+    q,
+    (snap) => {
+      PRODUCTS = snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+      renderProducts();
+    },
+    (err) => {
+      console.error("Error al cargar productos:", err);
+      if (grid) {
+        grid.innerHTML = `<p class="col-span-full text-center text-[var(--c-gray-soft)]">No pudimos cargar los productos. Probá recargar la página.</p>`;
+      }
+    }
+  );
 }
 
 /* ================= RENDER: REDES SOCIALES ================= */
@@ -356,7 +385,7 @@ function init() {
   renderSocials();
   renderCommunity();
   renderNaranjaXData();
-  renderProducts();
+  subscribeProducts();
 
   $$(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));
 
