@@ -50,8 +50,8 @@
       '<div class="cookie-banner-inner glass-strong">' +
       "<p>Usamos cookies propias y de Google Analytics para entender cómo se " +
       "usa el sitio, y almacenamiento del navegador para mantener tu sesión " +
-      "si entrás como revendedor o admin. Podés aceptarlas o rechazarlas. " +
-      'Más info en la <a href="privacidad.html">Política de privacidad</a>.</p>' +
+      "iniciada si accedés a áreas con acceso restringido. Podés aceptarlas " +
+      'o rechazarlas. Más info en la <a href="privacidad.html">Política de privacidad</a>.</p>' +
       '<div class="cookie-banner-actions">' +
       '<button type="button" id="cookie-reject" class="cookie-btn-ghost">Rechazar</button>' +
       '<button type="button" id="cookie-accept" class="cookie-btn-solid">Aceptar</button>' +
