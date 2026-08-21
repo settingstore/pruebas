@@ -145,7 +145,7 @@
   </header>
 
   <section class="max-w-6xl mx-auto px-5 pb-20">
-    <div id="rvProductsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div id="rvProductsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
       <div class="gem-card glass h-72 skeleton"></div>
       <div class="gem-card glass h-72 skeleton"></div>
       <div class="gem-card glass h-72 skeleton"></div>
@@ -419,8 +419,8 @@
     const maxLine = product.maxPerPurchase ? `Máximo por compra: ${product.maxPerPurchase} uds.` : "";
 
     const priceBlock = hasDiscount
-      ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">Desde ${formatPrice(product.discountPrice)}</span>`
-      : `<span class="pack-card__price">Desde ${formatPrice(product.price)}</span>`;
+      ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">${formatPrice(product.discountPrice)}</span>`
+      : `<span class="pack-card__price">${formatPrice(product.price)}</span>`;
 
     return `
       <article class="gem-card pack-card glass glow-border relative">

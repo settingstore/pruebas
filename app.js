@@ -146,8 +146,8 @@ function productCardTemplate(product, index) {
   const maxLine = product.maxPerPurchase ? `Máximo por compra: ${product.maxPerPurchase} uds.` : "";
 
   const priceBlock = hasDiscount
-    ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">Desde ${formatPrice(product.discountPrice)}</span>`
-    : `<span class="pack-card__price">Desde ${formatPrice(product.price)}</span>`;
+    ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">${formatPrice(product.discountPrice)}</span>`
+    : `<span class="pack-card__price">${formatPrice(product.price)}</span>`;
 
   return `
     <article class="gem-card pack-card glass glow-border relative" data-aos="fade-up">

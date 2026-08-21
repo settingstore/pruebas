@@ -14,7 +14,6 @@
   --c-white: #ffffff;
   --c-gray: #1a1f2b;
   --c-gray-soft: #8b95a7;
-  --c-price-green: #2ecc71;
 
   /* Tipografía */
   --f-display: 'Orbitron', sans-serif;
@@ -342,7 +341,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   font-family: var(--f-display);
   font-weight: 700;
   font-size: 1.15rem;
-  color: var(--c-price-green);
+  color: var(--c-blue-glow);
 }
 .pack-card__price--strike {
   font-size: 0.8rem;
@@ -354,6 +353,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   width: 100%;
   text-align: center;
   margin-top: auto;
+}
+
+/* En pantallas angostas mostramos 2 productos por fila: achicamos
+   tipografía y paddings para que la tarjeta no se sienta apretada. */
+@media (max-width: 639px) {
+  .pack-card__body { padding: 12px 12px 14px; }
+  .pack-card__title { font-size: 1rem; margin-bottom: 6px; }
+  .pack-card__detail { font-size: 0.72rem; margin-bottom: 2px; }
+  .pack-card__max { font-size: 0.66rem; margin-bottom: 10px; }
+  .pack-card__price-row { margin-bottom: 10px; }
+  .pack-card__price { font-size: 0.95rem; }
+  .pack-card__price--strike { font-size: 0.68rem; }
+  .pack-card__buy { padding-top: 10px; padding-bottom: 10px; font-size: 0.8rem; }
 }
 
 /* ============ Modales (checkout / pop-up de grupo) ============ */
