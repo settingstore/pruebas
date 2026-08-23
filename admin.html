@@ -455,6 +455,7 @@
   const panelRevendedores = document.getElementById("panelRevendedores");
   const panelVentas = document.getElementById("panelVentas");
   const panelProductos = document.getElementById("panelProductos");
+  const panelProductosCantidad = document.getElementById("panelProductosCantidad");
   const panelPagos = document.getElementById("panelPagos");
 
   const allTabs = [
@@ -464,14 +465,15 @@
     [tabBtnPagos, panelPagos],
   ];
 
-  allTabs.forEach(([btn, panel]) => {
-    btn.addEventListener("click", () => {
-      allTabs.forEach(([b, p]) => {
-        b.classList.toggle("active", b === btn);
-        p.classList.toggle("active", p === panel);
-      });
+allTabs.forEach(([btn, panel]) => {
+  btn.addEventListener("click", () => {
+    allTabs.forEach(([b, p]) => {
+      b.classList.toggle("active", b === btn);
+      p.classList.toggle("active", p === panel);
     });
+    panelProductosCantidad.classList.toggle("active", panel === panelProductos);
   });
+});
 
   async function loadCode() {
     const ref = doc(db, "settings", "resellerAccess");
