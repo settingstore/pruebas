@@ -496,6 +496,46 @@ function bindMobileMenu() {
   );
 }
 
+/* ================= MANTENIMIENTO ================= */
+
+// Se activa/desactiva desde admin.html → pestaña "Mantenimiento", sin
+// tocar código. Mientras está activa, tapa todo el sitio con una
+// pantalla propia; el resto de la página sigue existiendo debajo
+// pero queda inaccesible (scroll bloqueado).
+function showMaintenanceOverlay(message) {
+  let overlay = $("#maintenance-overlay");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "maintenance-overlay";
+    overlay.innerHTML = `
+      <div class="glass glow-border maintenance-card">
+        <img src="${SETTINGS.logoUrl}" alt="${SETTINGS.storeName}" class="maintenance-logo" />
+        <h1>Estamos en mantenimiento</h1>
+        <p id="maintenance-message"></p>
+      </div>`;
+    document.body.appendChild(overlay);
+  }
+  $("#maintenance-message").textContent =
+    message || "Estamos haciendo mejoras. Volvemos en breve, ¡gracias por tu paciencia!";
+  document.body.classList.add("maintenance-active");
+}
+
+function hideMaintenanceOverlay() {
+  $("#maintenance-overlay")?.remove();
+  document.body.classList.remove("maintenance-active");
+}
+
+function subscribeMaintenance() {
+  onSnapshot(doc(db, "settings", "maintenance"), (snap) => {
+    const data = snap.exists() ? snap.data() : { active: false };
+    if (data.active) {
+      showMaintenanceOverlay(data.message);
+    } else {
+      hideMaintenanceOverlay();
+    }
+  });
+}
+
 /* ================= INIT ================= */
 
 function init() {
@@ -512,6 +552,7 @@ function init() {
   renderNaranjaXData();
   subscribePayment();
   subscribeProducts();
+  subscribeMaintenance();
 
   $$(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));
 
