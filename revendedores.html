@@ -377,13 +377,16 @@
       .filter((p) => p.visible !== false)
       .map((p) => {
         const rp = resellerPricingById.get(p.id);
+        if (p.type === "quantity") {
+          return { ...p, stepPrice: rp ? rp.stepPrice : null };
+        }
         return {
           ...p,
           price: rp ? rp.price : null, // precio de revendedor (nunca el de tienda)
           discountPrice: rp ? rp.discountPrice : null,
         };
       })
-      .filter((p) => p.price != null) // sin precio de revendedor cargado todavía → no se muestra
+      .filter((p) => (p.type === "quantity" ? p.stepPrice != null : p.price != null)) // sin precio de revendedor cargado todavía → no se muestra
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
     renderResellerProducts();
@@ -400,13 +403,22 @@
     });
   }
 
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str ?? "";
+    return div.innerHTML;
+  }
+
   function cardTemplate(product) {
+    if (product.type === "quantity") return quantityCardTemplate(product);
+
     const img = product.image
       ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
       : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
 
     const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
     const hasBonus = product.bonus != null && product.bonus > 0;
+    const outOfStock = product.inStock === false;
 
     const title =
       product.diamonds && hasBonus
@@ -426,17 +438,104 @@
       ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">${formatPrice(product.discountPrice)}</span>`
       : `<span class="pack-card__price">${formatPrice(product.price)}</span>`;
 
+    const buyBtn = outOfStock
+      ? `<button type="button" class="btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" disabled>Sin stock</button>`
+      : `<button type="button" class="js-rv-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-id="${product.id}">Comprar</button>`;
+
     return `
-      <article class="gem-card pack-card glass glow-border relative">
+      <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}">
+        ${outOfStock ? `<span class="stock-badge">Sin stock</span>` : ""}
         <div class="pack-card__media">${img}</div>
         <div class="pack-card__body">
           <h3 class="pack-card__title">${title}</h3>
           <p class="pack-card__detail">${detailLine}</p>
           ${maxLine ? `<p class="pack-card__max">${maxLine}</p>` : ""}
           <div class="pack-card__price-row">${priceBlock}</div>
-          <button type="button" class="js-rv-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-id="${product.id}">Comprar</button>
+          ${buyBtn}
         </div>
       </article>`;
+  }
+
+  // Tarjeta "por cantidad" (Tokens, Cajas, etc.) con precio de
+  // revendedor: mismo mecanismo que en la tienda, pero usando
+  // product.stepPrice ya resuelto por mergeAndRender() con el valor
+  // de resellerPricing.
+  function quantityCardTemplate(product) {
+    const img = product.image
+      ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
+      : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
+
+    const step = Number(product.stepSize) || 1;
+    const min = Math.max(step, Number(product.minSteps) > 0 ? Number(product.minSteps) * step : step);
+    const max = product.maxSteps ? Number(product.maxSteps) * step : null;
+    const unitPrice = Number(product.stepPrice) || 0;
+    const unitName = product.unitName || product.name;
+    const outOfStock = product.inStock === false;
+
+    const detailLine = product.badge || product.description || `${formatPrice(unitPrice)} cada uno · de ${step} en ${step}`;
+
+    const buyBtn = outOfStock
+      ? `<button type="button" class="btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" disabled>Sin stock</button>`
+      : `<button type="button" class="js-qty-buy btn-primary pack-card__buy text-sm px-4 py-3 rounded-full">Comprar</button>`;
+
+    return `
+      <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}"
+               data-qty-card data-step="${step}" data-min="${min}" data-max="${max ?? ""}"
+               data-unit-price="${unitPrice}" data-unit="${escapeHtml(unitName)}">
+        ${outOfStock ? `<span class="stock-badge">Sin stock</span>` : ""}
+        <div class="pack-card__media">${img}</div>
+        <div class="pack-card__body">
+          <h3 class="pack-card__title">${unitName.toUpperCase()}</h3>
+          <p class="pack-card__detail">${detailLine}</p>
+          <div class="qty-row">
+            <button type="button" class="qty-btn js-qty-minus" ${outOfStock ? "disabled" : ""} aria-label="Restar">−</button>
+            <span class="qty-value js-qty-value">${min}</span>
+            <button type="button" class="qty-btn js-qty-plus" ${outOfStock ? "disabled" : ""} aria-label="Sumar">+</button>
+          </div>
+          <div class="pack-card__price-row"><span class="pack-card__price js-qty-price">${formatPrice(min * unitPrice)}</span></div>
+          ${buyBtn}
+        </div>
+      </article>`;
+  }
+
+  function bindQuantityCards(scope) {
+    scope.querySelectorAll("[data-qty-card]").forEach((card) => {
+      const step = Number(card.dataset.step) || 1;
+      const min = Number(card.dataset.min) || step;
+      const max = card.dataset.max ? Number(card.dataset.max) : null;
+      const unitPrice = Number(card.dataset.unitPrice) || 0;
+      const unit = card.dataset.unit || "";
+      const valueEl = card.querySelector(".js-qty-value");
+      const priceEl = card.querySelector(".js-qty-price");
+      let qty = min;
+
+      const updateUI = () => {
+        valueEl.textContent = qty;
+        priceEl.textContent = formatPrice(qty * unitPrice);
+      };
+
+      card.querySelector(".js-qty-minus")?.addEventListener("click", () => {
+        if (qty - step >= min) {
+          qty -= step;
+          updateUI();
+        }
+      });
+
+      card.querySelector(".js-qty-plus")?.addEventListener("click", () => {
+        if (max == null || qty + step <= max) {
+          qty += step;
+          updateUI();
+        }
+      });
+
+      card.querySelector(".js-qty-buy")?.addEventListener("click", () => {
+        openCheckout({
+          name: `${qty} ${unit}`,
+          price: qty * unitPrice,
+          discountPrice: null,
+        });
+      });
+    });
   }
 
   function renderResellerProducts() {
@@ -456,6 +555,8 @@
         if (product) openCheckout(product);
       });
     });
+
+    bindQuantityCards(grid);
   }
 
   /* ================= CHECKOUT: PASO 1 (UID + NICK) → PASO 2 (NARANJA X) ================= */

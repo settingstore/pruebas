@@ -122,12 +122,15 @@ function buildWhatsappLink(product, buyer) {
 }
 
 function productCardTemplate(product, index) {
+  if (product.type === "quantity") return quantityCardTemplate(product, index);
+
   const img = product.image
     ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
     : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
 
   const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
   const hasBonus = product.bonus != null && product.bonus > 0;
+  const outOfStock = product.inStock === false;
 
   // Título grande del pack: "100+10 DIAMANTES" si hay bono, si no el nombre tal cual.
   const title =
@@ -149,17 +152,70 @@ function productCardTemplate(product, index) {
     ? `<span class="pack-card__price--strike">${formatPrice(product.price)}</span><span class="pack-card__price">${formatPrice(product.discountPrice)}</span>`
     : `<span class="pack-card__price">${formatPrice(product.price)}</span>`;
 
+  const buyBtn = outOfStock
+    ? `<button type="button" class="btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" disabled>Sin stock</button>`
+    : `<button type="button" class="js-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-index="${index}">Comprar</button>`;
+
   return `
-    <article class="gem-card pack-card glass glow-border relative" data-aos="fade-up">
+    <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}" data-aos="fade-up">
+      ${outOfStock ? `<span class="stock-badge">Sin stock</span>` : ""}
       <div class="pack-card__media">${img}</div>
       <div class="pack-card__body">
         <h3 class="pack-card__title">${title}</h3>
         <p class="pack-card__detail">${detailLine}</p>
         ${maxLine ? `<p class="pack-card__max">${maxLine}</p>` : ""}
         <div class="pack-card__price-row">${priceBlock}</div>
-        <button type="button" class="js-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-index="${index}">Comprar</button>
+        ${buyBtn}
       </div>
     </article>`;
+}
+
+// Tarjeta para productos "por cantidad" (Tokens, Cajas, etc.): el
+// cliente elige cuánto quiere comprar con un selector +/- que avanza
+// de a `stepSize` unidades, y el precio se recalcula en vivo como
+// (cantidad / stepSize) * stepPrice.
+function quantityCardTemplate(product, index) {
+  const img = product.image
+    ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
+    : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
+
+  const step = Number(product.stepSize) || 1;
+  const min = Math.max(step, Number(product.minSteps) > 0 ? Number(product.minSteps) * step : step);
+  const max = product.maxSteps ? Number(product.maxSteps) * step : null;
+  const unitPrice = Number(product.stepPrice) || 0;
+  const unitName = product.unitName || product.name;
+  const outOfStock = product.inStock === false;
+
+  const detailLine = product.badge || product.description || `${formatPrice(unitPrice)} cada uno · de ${step} en ${step}`;
+
+  const buyBtn = outOfStock
+    ? `<button type="button" class="btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" disabled>Sin stock</button>`
+    : `<button type="button" class="js-qty-buy btn-primary pack-card__buy text-sm px-4 py-3 rounded-full">Comprar</button>`;
+
+  return `
+    <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}"
+             data-aos="fade-up" data-qty-card data-step="${step}" data-min="${min}" data-max="${max ?? ""}"
+             data-unit-price="${unitPrice}" data-unit="${escapeHtml(unitName)}">
+      ${outOfStock ? `<span class="stock-badge">Sin stock</span>` : ""}
+      <div class="pack-card__media">${img}</div>
+      <div class="pack-card__body">
+        <h3 class="pack-card__title">${unitName.toUpperCase()}</h3>
+        <p class="pack-card__detail">${detailLine}</p>
+        <div class="qty-row">
+          <button type="button" class="qty-btn js-qty-minus" ${outOfStock ? "disabled" : ""} aria-label="Restar">−</button>
+          <span class="qty-value js-qty-value">${min}</span>
+          <button type="button" class="qty-btn js-qty-plus" ${outOfStock ? "disabled" : ""} aria-label="Sumar">+</button>
+        </div>
+        <div class="pack-card__price-row"><span class="pack-card__price js-qty-price">${formatPrice(min * unitPrice)}</span></div>
+        ${buyBtn}
+      </div>
+    </article>`;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str ?? "";
+  return div.innerHTML;
 }
 
 function renderProducts() {
@@ -183,6 +239,52 @@ function renderProducts() {
     btn.addEventListener("click", () => {
       const product = PRODUCTS[Number(btn.dataset.productIndex)];
       if (product) openCheckout(product);
+    });
+  });
+
+  bindQuantityCards(grid);
+}
+
+// Engancha los selectores +/- de las tarjetas "por cantidad" (Tokens,
+// Cajas, etc.): cada tarjeta guarda su propio estado en el DOM
+// (data-step / data-min / data-max) para no depender de un índice
+// global que se rompería si la grilla se vuelve a renderizar.
+function bindQuantityCards(scope) {
+  scope.querySelectorAll("[data-qty-card]").forEach((card) => {
+    const step = Number(card.dataset.step) || 1;
+    const min = Number(card.dataset.min) || step;
+    const max = card.dataset.max ? Number(card.dataset.max) : null;
+    const unitPrice = Number(card.dataset.unitPrice) || 0;
+    const unit = card.dataset.unit || "";
+    const valueEl = card.querySelector(".js-qty-value");
+    const priceEl = card.querySelector(".js-qty-price");
+    let qty = min;
+
+    const updateUI = () => {
+      valueEl.textContent = qty;
+      priceEl.textContent = formatPrice(qty * unitPrice);
+    };
+
+    card.querySelector(".js-qty-minus")?.addEventListener("click", () => {
+      if (qty - step >= min) {
+        qty -= step;
+        updateUI();
+      }
+    });
+
+    card.querySelector(".js-qty-plus")?.addEventListener("click", () => {
+      if (max == null || qty + step <= max) {
+        qty += step;
+        updateUI();
+      }
+    });
+
+    card.querySelector(".js-qty-buy")?.addEventListener("click", () => {
+      openCheckout({
+        name: `${qty} ${unit}`,
+        price: qty * unitPrice,
+        discountPrice: null,
+      });
     });
   });
 }
