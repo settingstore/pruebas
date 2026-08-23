@@ -108,6 +108,39 @@
     color: var(--c-blue-glow);
     margin-bottom: 14px;
   }
+
+  /* Top 3 revendedores */
+  .rv-top3-label {
+    font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--c-blue-glow); margin-bottom: 10px; font-weight: 700;
+  }
+  .rv-top3 {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    align-items: end; margin-bottom: 8px;
+  }
+  .rv-top3-card {
+    background: var(--c-card); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius);
+    padding: 16px 10px 14px; text-align: center;
+  }
+  .rv-top3-card.p1 { border: var(--border-glow); box-shadow: var(--shadow-glow); order: 2; padding-top: 22px; }
+  .rv-top3-card.p2 { order: 1; }
+  .rv-top3-card.p3 { order: 3; }
+  .rv-top3-card.me { outline: 2px solid var(--c-blue-glow); outline-offset: 2px; }
+  .rv-top3-medal { font-size: 1.7rem; line-height: 1; margin-bottom: 6px; }
+  .rv-top3-card.p1 .rv-top3-medal { font-size: 2.1rem; }
+  .rv-top3-name {
+    font-family: var(--f-display); font-size: 0.85rem; font-weight: 700; color: var(--c-white);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rv-top3-you { font-size: 0.68rem; color: var(--c-blue-glow); margin-top: 4px; font-weight: 700; }
+  .rv-top3-empty {
+    grid-column: 1 / -1; text-align: center; padding: 18px; color: var(--c-gray-soft); font-size: 0.85rem;
+  }
+  @media (max-width: 560px) {
+    .rv-top3 { grid-template-columns: 1fr; gap: 8px; }
+    .rv-top3-card.p1, .rv-top3-card.p2, .rv-top3-card.p3 { order: initial; padding-top: 14px; }
+    .rv-top3-card.p1 { order: -1; }
+  }
 </style>
 </head>
 <body class="font-body bg-base text-white">
@@ -143,6 +176,13 @@
     </div>
     <button type="button" id="rvLogoutBtn" class="btn-ghost text-xs px-4 py-2 rounded-full">No soy yo / salir</button>
   </header>
+
+  <section class="max-w-6xl mx-auto px-5 pb-2">
+    <div class="rv-top3-label">🏆 Top 3 revendedores</div>
+    <div class="rv-top3" id="rvTop3">
+      <div class="rv-top3-empty">Todavía no hay ventas registradas.</div>
+    </div>
+  </section>
 
   <section class="max-w-6xl mx-auto px-5 pb-20">
     <div class="text-center mb-8">
@@ -226,7 +266,7 @@
 
 <script type="module">
   import {
-    db, doc, getDoc, collection, addDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp
+    db, doc, getDoc, collection, addDoc, setDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp, increment
   } from "./firebase-init.js";
   import { SETTINGS, NARANJAX_RESELLER } from "./config.js";
 
@@ -242,6 +282,14 @@
 
   const formatPrice = (value) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
+
+  // Los IDs de documento en Firestore no pueden contener "/", así que
+  // sanitizamos el nombre del revendedor para usarlo como clave del
+  // ranking en resellerStats.
+  function safeStatsKey(name) {
+    const clean = (name || "").trim().replace(/\//g, "-").slice(0, 200);
+    return clean || "sin-nombre";
+  }
 
   /* ================= LOGIN ================= */
 
@@ -282,6 +330,7 @@
     catalogSection.classList.remove("hidden");
     nameDisplay.textContent = name;
     subscribeResellerProducts();
+    subscribeTop3();
   }
 
   logoutBtn.addEventListener("click", () => {
@@ -665,6 +714,15 @@
           buyerNickname: checkoutBuyer.nickname,
           createdAt: serverTimestamp(),
         });
+        // Suma 1 al contador de ventas del ranking (Top 3). Este
+        // contador es público a propósito, pero solo guarda cantidad
+        // de pedidos, nunca montos.
+        const statsKey = safeStatsKey(currentResellerName);
+        await setDoc(
+          doc(db, "resellerStats", statsKey),
+          { name: currentResellerName || "—", total: increment(1) },
+          { merge: true }
+        );
       } catch (err) {
         console.error("No se pudo registrar el pedido:", err);
       }
@@ -704,6 +762,52 @@
     toast.classList.add("show");
     clearTimeout(showToast._t);
     showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+
+  /* ================= TOP 3 REVENDEDORES ================= */
+  // Ranking competitivo por cantidad de ventas. A propósito NO
+  // muestra montos ni cifras de ningún tipo — solo el podio con
+  // quiénes están en el top, para picantear sin exponer plata.
+
+  function subscribeTop3() {
+    const el = document.getElementById("rvTop3");
+    if (!el) return;
+    onSnapshot(collection(db, "resellerStats"), (snap) => {
+      const all = [];
+      snap.forEach((docSnap) => {
+        const d = docSnap.data();
+        if ((d.total || 0) > 0) all.push({ name: d.name || "—", total: d.total || 0 });
+      });
+      all.sort((a, b) => b.total - a.total);
+      const top3 = all.slice(0, 3);
+
+      if (!top3.length) {
+        el.innerHTML = '<div class="rv-top3-empty">Todavía no hay ventas registradas.</div>';
+        return;
+      }
+
+      const medals = ["🥇", "🥈", "🥉"];
+      const posClass = ["p1", "p2", "p3"];
+      el.innerHTML = top3
+        .map((r, i) => {
+          const isMe =
+            currentResellerName &&
+            r.name.trim().toLowerCase() === currentResellerName.trim().toLowerCase();
+          return `
+          <div class="rv-top3-card ${posClass[i]}${isMe ? " me" : ""}">
+            <div class="rv-top3-medal">${medals[i]}</div>
+            <div class="rv-top3-name">${escapeHtmlRv(r.name)}</div>
+            ${isMe ? '<div class="rv-top3-you">¡Sos vos!</div>' : ""}
+          </div>`;
+        })
+        .join("");
+    });
+  }
+
+  function escapeHtmlRv(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
   }
 
   renderNaranjaXData();

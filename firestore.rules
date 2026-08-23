@@ -33,6 +33,19 @@ service cloud.firestore {
       allow delete: if request.auth != null;
     }
 
+    // Ranking competitivo de revendedores (Top 3 en revendedores.html).
+    // Guarda SOLO el nombre y la cantidad de pedidos por revendedor,
+    // nunca montos ni datos de pago — por eso puede ser de lectura
+    // pública sin exponer información sensible. Se incrementa desde
+    // el cliente (mismo criterio que resellerOrders/resellerSessions,
+    // sin backend propio) cada vez que se confirma un pedido.
+    match /resellerStats/{resellerKey} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if request.auth != null;
+    }
+
     // Catálogo de productos (precios de la TIENDA original, los que
     // ve cualquier visitante en index.html). Lectura pública porque
     // la tienda necesita mostrarlos sin login. Solo el admin logueado
