@@ -296,10 +296,19 @@
       <div class="ad-stat"><div class="n" id="ventasTotalN">0</div><div class="l">Pedidos históricos</div></div>
     </div>
 
-    <div class="ad-section-label">Top 3 revendedores (por monto vendido histórico)</div>
+    <div class="ad-section-label" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <span>Top 3 revendedores (por monto vendido histórico)</span>
+      <button class="ad-btn secondary" id="adRecalcTop3Btn" style="width:auto; padding:6px 14px; font-size:0.72rem; text-transform:none; letter-spacing:normal;">Recalcular ranking público desde el historial</button>
+    </div>
     <div class="ad-podium" id="ventasPodium">
       <div class="ad-podium-empty ad-empty">Todavía no hay pedidos registrados.</div>
     </div>
+    <p style="font-size:0.72rem; color:var(--c-gray-soft); margin:-4px 0 20px;">
+      El podio de arriba (con montos) es solo para vos. El botón de "Recalcular" actualiza el
+      ranking público de <em>/revendedores.html</em> (sin montos, solo posiciones) con la
+      cantidad de ventas históricas de cada uno. Usalo la primera vez o si notás que el
+      ranking público no coincide con la realidad — las ventas nuevas se suman solas.
+    </p>
 
     <div class="ad-prod-table-wrap">
       <table id="adVentasTable">
@@ -744,10 +753,12 @@
 
   const adVentasTableBody = document.getElementById("adVentasTableBody");
   const ventasPodium = document.getElementById("ventasPodium");
+  const adRecalcTop3Btn = document.getElementById("adRecalcTop3Btn");
   const ventasHoyN = document.getElementById("ventasHoyN");
   const ventasSemanaN = document.getElementById("ventasSemanaN");
   const ventasMesN = document.getElementById("ventasMesN");
   const ventasTotalN = document.getElementById("ventasTotalN");
+  let lastByReseller = new Map();
 
   function startOfToday() {
     const d = new Date();
@@ -795,6 +806,8 @@
           if (createdMs >= week.getTime()) { r.semana++; totalSemana++; }
           if (createdMs >= month.getTime()) { r.mes++; totalMes++; }
         });
+
+        lastByReseller = byReseller;
 
         ventasHoyN.textContent = String(totalHoy);
         ventasSemanaN.textContent = String(totalSemana);
@@ -845,6 +858,44 @@
   function formatPrice(value) {
     return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value || 0);
   }
+
+  // Mismo criterio de sanitización que usa revendedores.html para
+  // armar la clave del documento en "resellerStats" (los IDs de
+  // Firestore no pueden contener "/").
+  function safeStatsKey(name) {
+    const clean = (name || "").trim().replace(/\//g, "-").slice(0, 200);
+    return clean || "sin-nombre";
+  }
+
+  adRecalcTop3Btn.addEventListener("click", async () => {
+    if (!lastByReseller.size) {
+      alert("Todavía no hay pedidos históricos para recalcular.");
+      return;
+    }
+    adRecalcTop3Btn.disabled = true;
+    adRecalcTop3Btn.textContent = "Recalculando...";
+    try {
+      // Sobrescribe (no suma) el total de cada revendedor en base al
+      // historial completo de resellerOrders, para que el ranking
+      // público de /revendedores.html quede exacto y no duplique
+      // conteos si se lo corre más de una vez.
+      for (const [name, r] of lastByReseller.entries()) {
+        await setDoc(doc(db, "resellerStats", safeStatsKey(name)), {
+          name,
+          total: r.total,
+        });
+      }
+      adRecalcTop3Btn.textContent = "¡Listo!";
+    } catch (err) {
+      console.error(err);
+      adRecalcTop3Btn.textContent = "Error, revisá la consola";
+    } finally {
+      setTimeout(() => {
+        adRecalcTop3Btn.textContent = "Recalcular ranking público desde el historial";
+        adRecalcTop3Btn.disabled = false;
+      }, 2000);
+    }
+  });
 
   function fmt(ts) {
     if (!ts) return "—";
