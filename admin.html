@@ -298,10 +298,33 @@
 
     <div class="ad-section-label" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
       <span>Top 3 revendedores (por monto vendido histórico)</span>
-      <button class="ad-btn secondary" id="adRecalcTop3Btn" style="width:auto; padding:6px 14px; font-size:0.72rem; text-transform:none; letter-spacing:normal;">Recalcular ranking público desde el historial</button>
+      <button class="ad-btn secondary" id="adRecalcTop3Btn" style="width:auto; padding:6px 14px; font-size:0.72rem; text-transform:none; letter-spacing:normal;">Recalcular Top 3 público (mes actual)</button>
     </div>
     <div class="ad-podium" id="ventasPodium">
       <div class="ad-podium-empty ad-empty">Todavía no hay pedidos registrados.</div>
+    </div>
+
+    <div class="ad-section-label" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:32px;">
+      <span>Ranking por mes (histórico)</span>
+      <select id="adMonthSelect" class="ad-mini-input" style="width:auto; min-width:160px;"></select>
+    </div>
+    <p style="font-size:0.78rem; color:var(--c-gray-soft); max-width:620px; margin-bottom:12px;">
+      Quién generó más plata en un mes puntual, incluidos los meses ya cerrados — así no se
+      pierde de vista aunque el Top 3 público de /revendedores.html ya haya arrancado de nuevo.
+    </p>
+    <div class="ad-prod-table-wrap">
+      <table id="adMonthTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Revendedor</th>
+            <th>Monto generado</th>
+          </tr>
+        </thead>
+        <tbody id="adMonthTableBody">
+          <tr><td colspan="3" class="ad-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
     </div>
     <p style="font-size:0.72rem; color:var(--c-gray-soft); margin:-4px 0 20px;">
       El podio de arriba (con montos) es solo para vos. El botón de "Recalcular" actualiza el
@@ -563,6 +586,7 @@
       listenSessions();
       listenProducts();
       listenVentas();
+      listenMonthlyStats();
       loadPayment();
       loadPaymentReseller();
       loadMaintenance();
@@ -796,7 +820,7 @@
           const price = Number(d.price) || 0;
 
           if (!byReseller.has(name)) {
-            byReseller.set(name, { hoy: 0, semana: 0, mes: 0, total: 0, monto: 0 });
+            byReseller.set(name, { hoy: 0, semana: 0, mes: 0, total: 0, monto: 0, montoMes: 0 });
           }
           const r = byReseller.get(name);
           r.total++;
@@ -804,7 +828,7 @@
           totalTodo++;
           if (createdMs >= today.getTime()) { r.hoy++; totalHoy++; }
           if (createdMs >= week.getTime()) { r.semana++; totalSemana++; }
-          if (createdMs >= month.getTime()) { r.mes++; totalMes++; }
+          if (createdMs >= month.getTime()) { r.mes++; r.montoMes += price; totalMes++; }
         });
 
         lastByReseller = byReseller;
@@ -859,30 +883,108 @@
     return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value || 0);
   }
 
+  /* ================= RANKING POR MES (HISTÓRICO) ================= */
+  // Lee "resellerMonthlyStats" completa (un documento por revendedor
+  // y mes, que nunca se sobrescribe entre meses distintos) y arma un
+  // selector para poder ver el ranking de cualquier mes ya cerrado,
+  // no solo el actual.
+
+  const adMonthSelect = document.getElementById("adMonthSelect");
+  const adMonthTableBody = document.getElementById("adMonthTableBody");
+  let monthlyStatsDocs = [];
+
+  const MONTH_NAMES = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  ];
+
+  function monthKeyLabel(monthKey) {
+    const [y, m] = monthKey.split("-").map(Number);
+    return `${MONTH_NAMES[(m || 1) - 1] || monthKey} ${y}`;
+  }
+
+  function currentMonthKeyAdmin() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function listenMonthlyStats() {
+    onSnapshot(collection(db, "resellerMonthlyStats"), (snap) => {
+      monthlyStatsDocs = snap.docs.map((d) => d.data());
+      renderMonthSelectOptions();
+      renderMonthTable();
+    });
+  }
+
+  function renderMonthSelectOptions() {
+    const months = Array.from(new Set(monthlyStatsDocs.map((d) => d.month))).sort().reverse();
+    if (!months.includes(currentMonthKeyAdmin())) months.unshift(currentMonthKeyAdmin());
+
+    const previousValue = adMonthSelect.value;
+    adMonthSelect.innerHTML = months
+      .map((m) => `<option value="${m}">${monthKeyLabel(m)}${m === currentMonthKeyAdmin() ? " (en curso)" : ""}</option>`)
+      .join("");
+    adMonthSelect.value = months.includes(previousValue) ? previousValue : currentMonthKeyAdmin();
+  }
+
+  function renderMonthTable() {
+    const monthKey = adMonthSelect.value || currentMonthKeyAdmin();
+    const rows = monthlyStatsDocs
+      .filter((d) => d.month === monthKey && (d.amount || 0) > 0)
+      .sort((a, b) => (b.amount || 0) - (a.amount || 0));
+
+    if (!rows.length) {
+      adMonthTableBody.innerHTML = `<tr><td colspan="3" class="ad-empty">Sin ventas registradas en ${monthKeyLabel(monthKey)}.</td></tr>`;
+      return;
+    }
+
+    adMonthTableBody.innerHTML = rows
+      .map(
+        (r, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${escapeHtml(r.name || "—")}</td>
+        <td>${formatPrice(r.amount)}</td>
+      </tr>`
+      )
+      .join("");
+  }
+
+  adMonthSelect.addEventListener("change", renderMonthTable);
+
   // Mismo criterio de sanitización que usa revendedores.html para
-  // armar la clave del documento en "resellerStats" (los IDs de
-  // Firestore no pueden contener "/").
+  // armar la clave del documento en "resellerMonthlyStats" (los IDs
+  // de Firestore no pueden contener "/").
   function safeStatsKey(name) {
     const clean = (name || "").trim().replace(/\//g, "-").slice(0, 200);
     return clean || "sin-nombre";
   }
 
+  // Mismo criterio que revendedores.html: "2026-08", etc.
+  function currentMonthKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+
   adRecalcTop3Btn.addEventListener("click", async () => {
     if (!lastByReseller.size) {
-      alert("Todavía no hay pedidos históricos para recalcular.");
+      alert("Todavía no hay pedidos este mes para recalcular.");
       return;
     }
     adRecalcTop3Btn.disabled = true;
     adRecalcTop3Btn.textContent = "Recalculando...";
     try {
-      // Sobrescribe (no suma) el total de cada revendedor en base al
-      // historial completo de resellerOrders, para que el ranking
-      // público de /revendedores.html quede exacto y no duplique
-      // conteos si se lo corre más de una vez.
+      // Sobrescribe (no suma) el monto del MES ACTUAL de cada
+      // revendedor en resellerMonthlyStats, para que el Top 3 público
+      // de /revendedores.html quede exacto y no duplique montos si se
+      // lo corre más de una vez. Los meses anteriores no se tocan.
+      const monthKey = currentMonthKey();
       for (const [name, r] of lastByReseller.entries()) {
-        await setDoc(doc(db, "resellerStats", safeStatsKey(name)), {
+        if (!r.montoMes) continue; // sin ventas este mes, no hace falta escribir nada
+        await setDoc(doc(db, "resellerMonthlyStats", `${monthKey}_${safeStatsKey(name)}`), {
           name,
-          total: r.total,
+          month: monthKey,
+          amount: r.montoMes,
         });
       }
       adRecalcTop3Btn.textContent = "¡Listo!";
@@ -891,7 +993,7 @@
       adRecalcTop3Btn.textContent = "Error, revisá la consola";
     } finally {
       setTimeout(() => {
-        adRecalcTop3Btn.textContent = "Recalcular ranking público desde el historial";
+        adRecalcTop3Btn.textContent = "Recalcular Top 3 público (mes actual)";
         adRecalcTop3Btn.disabled = false;
       }, 2000);
     }

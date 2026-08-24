@@ -295,11 +295,20 @@
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 
   // Los IDs de documento en Firestore no pueden contener "/", así que
-  // sanitizamos el nombre del revendedor para usarlo como clave del
-  // ranking en resellerStats.
+  // sanitizamos el nombre del revendedor para usarlo como parte de la
+  // clave del ranking mensual.
   function safeStatsKey(name) {
     const clean = (name || "").trim().replace(/\//g, "-").slice(0, 200);
     return clean || "sin-nombre";
+  }
+
+  // "2026-08", etc. — se usa como parte de la clave del documento del
+  // ranking, así cada mes calendario junta sus propios totales sin
+  // pisar los de meses anteriores (y sin que haga falta borrar nada
+  // a mano para "reiniciar" el Top 3).
+  function currentMonthKey() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }
 
   /* ================= LOGIN ================= */
@@ -735,13 +744,14 @@
           buyerNickname: checkoutBuyer.nickname,
           createdAt: serverTimestamp(),
         });
-        // Suma 1 al contador de ventas del ranking (Top 3). Este
-        // contador es público a propósito, pero solo guarda cantidad
-        // de pedidos, nunca montos.
-        const statsKey = safeStatsKey(currentResellerName);
+        // Suma el monto de esta venta al total del MES ACTUAL para el
+        // ranking (Top 3). Documento público a propósito, pero solo
+        // guarda nombre + monto acumulado del mes — nunca datos del
+        // comprador ni el detalle de cada pedido.
+        const statsId = `${currentMonthKey()}_${safeStatsKey(currentResellerName)}`;
         await setDoc(
-          doc(db, "resellerStats", statsKey),
-          { name: currentResellerName || "—", total: increment(1) },
+          doc(db, "resellerMonthlyStats", statsId),
+          { name: currentResellerName || "—", month: currentMonthKey(), amount: increment(finalPrice(checkoutProduct)) },
           { merge: true }
         );
       } catch (err) {
@@ -785,25 +795,32 @@
     showToast._t = setTimeout(() => toast.classList.remove("show"), 1800);
   }
 
-  /* ================= TOP 3 REVENDEDORES ================= */
-  // Ranking competitivo por cantidad de ventas. A propósito NO
-  // muestra montos ni cifras de ningún tipo — solo el podio con
-  // quiénes están en el top, para picantear sin exponer plata.
+  /* ================= TOP 3 REVENDEDORES DEL MES ================= */
+  // Ranking por PLATA GENERADA en el mes calendario actual. Lee
+  // "resellerMonthlyStats" (colección pública de solo nombre + monto
+  // acumulado del mes, sin datos de compradores) en vez de
+  // "resellerOrders" (que sí tiene datos sensibles y solo puede leer
+  // el admin). Se "reinicia" solo: cada mes nuevo arranca en $0 sin
+  // que haga falta borrar nada a mano. A propósito solo se muestran
+  // nombres, nunca montos.
 
   function subscribeTop3() {
     const el = document.getElementById("rvTop3");
     if (!el) return;
-    onSnapshot(collection(db, "resellerStats"), (snap) => {
+    onSnapshot(collection(db, "resellerMonthlyStats"), (snap) => {
+      const monthKey = currentMonthKey();
       const all = [];
       snap.forEach((docSnap) => {
         const d = docSnap.data();
-        if ((d.total || 0) > 0) all.push({ name: d.name || "—", total: d.total || 0 });
+        if (d.month === monthKey && (d.amount || 0) > 0) {
+          all.push({ name: d.name || "—", amount: d.amount || 0 });
+        }
       });
-      all.sort((a, b) => b.total - a.total);
+      all.sort((a, b) => b.amount - a.amount);
       const top3 = all.slice(0, 3);
 
       if (!top3.length) {
-        el.innerHTML = '<div class="rv-top3-empty">Todavía no hay ventas registradas.</div>';
+        el.innerHTML = '<div class="rv-top3-empty">Todavía no hay ventas registradas este mes.</div>';
         return;
       }
 
