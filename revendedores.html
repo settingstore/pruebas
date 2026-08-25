@@ -404,10 +404,25 @@
         return;
       }
 
+      // Lista blanca de teléfonos autorizados (se carga junto con el
+      // código, desde admin.html → pestaña "Revendedores"). Si el admin
+      // todavía no cargó ningún número, la lista queda vacía y no se
+      // aplica esta restricción (para no romper el acceso antes de
+      // configurarla). En cuanto haya al menos un número cargado, solo
+      // esos números pueden entrar, aunque alguien tenga el código.
+      const allowedPhones = Array.isArray(codeSnap.data().allowedPhones) ? codeSnap.data().allowedPhones : [];
+      const phoneNormalized = phone.replace(/\D/g, "");
+      if (allowedPhones.length > 0 && !allowedPhones.includes(phoneNormalized)) {
+        setMsg("Este número no está autorizado para acceder. Consultá con el administrador.", "error");
+        submitBtn.disabled = false;
+        return;
+      }
+
       // Código correcto: registramos la sesión
       const sessionRef = await addDoc(collection(db, "resellerSessions"), {
         name,
         phone,
+        phoneNormalized,
         code,
         loggedInAt: serverTimestamp(),
         lastSeen: serverTimestamp(),
@@ -664,17 +679,18 @@
 
   function buildWhatsappLink(product, buyer) {
     const lines = [
-      "Hola, soy revendedor. Ya realicé el pago, adjunto el comprobante.",
+      "¡Hola! 💙 Soy revendedor y ya realicé el pago, te dejo mi comprobante ✅",
       "",
-      "Quiero comprar:",
+      "🔷 Quiero comprar:",
       product.name,
       "",
-      "Precio revendedor:",
+      "🔹 Precio revendedor:",
       formatPrice(finalPrice(product)),
     ];
     if (buyer) {
-      lines.push("", "Mi ID (UID):", buyer.uid, "Nombre en el juego:", buyer.nickname);
+      lines.push("", "🆔 Mi ID (UID):", buyer.uid, "🎮 Nombre en el juego:", buyer.nickname);
     }
+    lines.push("", "🛒 Pedido realizado en settings.sbs");
     const msg = lines.join("\n");
     return `https://wa.me/${SETTINGS.whatsappNumber}?text=${encodeURIComponent(msg)}`;
   }
