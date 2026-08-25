@@ -154,11 +154,16 @@
 <div class="rv-wrap" id="rvLoginSection">
   <div class="rv-card">
     <h1>Acceso Revendedores</h1>
-    <p class="sub">Ingresá tu nombre y el código que te compartieron.</p>
+    <p class="sub">Ingresá tu nombre, tu teléfono y el código que te compartieron.</p>
 
     <div class="rv-field">
       <label for="rvName">Tu nombre</label>
       <input type="text" id="rvName" placeholder="Ej: Juan / Nick del clan" autocomplete="off" />
+    </div>
+
+    <div class="rv-field">
+      <label for="rvPhone">Tu teléfono (WhatsApp)</label>
+      <input type="tel" id="rvPhone" placeholder="Ej: 5491122334455" autocomplete="off" inputmode="tel" />
     </div>
 
     <div class="rv-field">
@@ -277,7 +282,7 @@
 
 <script type="module">
   import {
-    db, doc, getDoc, collection, addDoc, setDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp, increment
+    db, doc, getDoc, collection, addDoc, setDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp
   } from "./firebase-init.js";
   import { SETTINGS, NARANJAX_RESELLER } from "./config.js";
 
@@ -294,14 +299,6 @@
   const formatPrice = (value) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 
-  // Los IDs de documento en Firestore no pueden contener "/", así que
-  // sanitizamos el nombre del revendedor para usarlo como parte de la
-  // clave del ranking mensual.
-  function safeStatsKey(name) {
-    const clean = (name || "").trim().replace(/\//g, "-").slice(0, 200);
-    return clean || "sin-nombre";
-  }
-
   // "2026-08", etc. — se usa como parte de la clave del documento del
   // ranking, así cada mes calendario junta sus propios totales sin
   // pisar los de meses anteriores (y sin que haga falta borrar nada
@@ -316,6 +313,7 @@
   const loginSection = document.getElementById("rvLoginSection");
   const catalogSection = document.getElementById("rvCatalogSection");
   const nameInput = document.getElementById("rvName");
+  const phoneInput = document.getElementById("rvPhone");
   const codeInput = document.getElementById("rvCode");
   const submitBtn = document.getElementById("rvSubmit");
   const msgEl = document.getElementById("rvMsg");
@@ -330,6 +328,7 @@
   // revendedor que lo hizo, sin tener que volver a pedir el nombre.
   let currentSessionId = null;
   let currentResellerName = null;
+  let currentResellerPhone = null;
 
   function setMsg(text, type) {
     msgEl.textContent = text;
@@ -358,6 +357,7 @@
   logoutBtn.addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem("rv_name");
+    localStorage.removeItem("rv_phone");
     window.location.reload();
   });
 
@@ -372,19 +372,22 @@
   // Si ya tiene sesión guardada en este navegador, entra directo
   const existingSessionId = localStorage.getItem(STORAGE_KEY);
   const existingName = localStorage.getItem("rv_name");
+  const existingPhone = localStorage.getItem("rv_phone");
   if (existingSessionId && existingName) {
     currentSessionId = existingSessionId;
     currentResellerName = existingName;
+    currentResellerPhone = existingPhone || "";
     showCatalog(existingName);
     startHeartbeat(existingSessionId);
   }
 
   submitBtn.addEventListener("click", async () => {
     const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
     const code = codeInput.value.trim();
 
-    if (!name || !code) {
-      setMsg("Completá tu nombre y el código.", "error");
+    if (!name || !phone || !code) {
+      setMsg("Completá tu nombre, tu teléfono y el código.", "error");
       return;
     }
 
@@ -404,6 +407,7 @@
       // Código correcto: registramos la sesión
       const sessionRef = await addDoc(collection(db, "resellerSessions"), {
         name,
+        phone,
         code,
         loggedInAt: serverTimestamp(),
         lastSeen: serverTimestamp(),
@@ -412,8 +416,10 @@
 
       localStorage.setItem(STORAGE_KEY, sessionRef.id);
       localStorage.setItem("rv_name", name);
+      localStorage.setItem("rv_phone", phone);
       currentSessionId = sessionRef.id;
       currentResellerName = name;
+      currentResellerPhone = phone;
 
       setMsg("¡Acceso concedido!", "ok");
       showCatalog(name);
@@ -730,32 +736,36 @@
     $("#checkout-send-whatsapp")?.addEventListener("click", async () => {
       if (!checkoutProduct || !checkoutBuyer) return;
 
-      // Registra el pedido para las estadísticas de ventas por
-      // revendedor en admin.html (hoy / semana / mes / total). No
-      // bloquea la apertura de WhatsApp si falla el guardado.
+      // Evita doble envío por doble clic (spam accidental o intencional
+      // del mismo pedido).
+      const sendBtn = $("#checkout-send-whatsapp");
+      if (sendBtn.disabled) return;
+      sendBtn.disabled = true;
+      sendBtn.textContent = "Enviando...";
+
+      // Registra el pedido como PENDIENTE. Todavía NO suma al Top 3:
+      // eso solo pasa cuando el admin confirma manualmente (viendo que
+      // la transferencia llegó de verdad) desde admin.html → "Ventas
+      // revendedores" → "Pedidos pendientes de confirmar". Así nadie
+      // puede inflar su propio ranking clickeando "Comprar" en falso.
       try {
         await addDoc(collection(db, "resellerOrders"), {
           resellerSessionId: currentSessionId || null,
           resellerName: currentResellerName || "—",
+          resellerPhone: currentResellerPhone || "",
           productId: checkoutProduct.id || null,
           productName: checkoutProduct.name,
           price: finalPrice(checkoutProduct),
           buyerUid: checkoutBuyer.uid,
           buyerNickname: checkoutBuyer.nickname,
+          status: "pending",
           createdAt: serverTimestamp(),
         });
-        // Suma el monto de esta venta al total del MES ACTUAL para el
-        // ranking (Top 3). Documento público a propósito, pero solo
-        // guarda nombre + monto acumulado del mes — nunca datos del
-        // comprador ni el detalle de cada pedido.
-        const statsId = `${currentMonthKey()}_${safeStatsKey(currentResellerName)}`;
-        await setDoc(
-          doc(db, "resellerMonthlyStats", statsId),
-          { name: currentResellerName || "—", month: currentMonthKey(), amount: increment(finalPrice(checkoutProduct)) },
-          { merge: true }
-        );
       } catch (err) {
         console.error("No se pudo registrar el pedido:", err);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.textContent = "Ya transferí, enviar comprobante";
       }
 
       window.open(buildWhatsappLink(checkoutProduct, checkoutBuyer), "_blank", "noopener");

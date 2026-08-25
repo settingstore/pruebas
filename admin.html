@@ -269,13 +269,14 @@
           <tr>
             <th>Estado</th>
             <th>Nombre</th>
+            <th>Teléfono</th>
             <th>Conectado desde</th>
             <th>Última actividad</th>
             <th></th>
           </tr>
         </thead>
         <tbody id="adTableBody">
-          <tr><td colspan="5" class="ad-empty">Cargando...</td></tr>
+          <tr><td colspan="6" class="ad-empty">Cargando...</td></tr>
         </tbody>
       </table>
     </div>
@@ -288,6 +289,62 @@
       "Ya transferí, enviar comprobante" en /revendedores.html. El monto es el precio de
       revendedor que tenía el producto en ese momento.
     </p>
+
+    <div class="ad-section-label" style="display:flex; align-items:center; gap:10px;">
+      <span>Pedidos pendientes de confirmar</span>
+      <span id="adPendingCount" style="display:inline-block; padding:2px 10px; background:rgba(0,168,255,0.12); border:1px solid rgba(0,168,255,0.35); border-radius:20px; font-size:0.75rem; color:var(--c-blue-glow, #00D9FF);">0</span>
+    </div>
+    <p style="font-size:0.78rem; color:var(--c-gray-soft); max-width:620px; margin-bottom:12px;">
+      Ningún pedido cuenta para el Top 3 ni para el monto vendido hasta que lo confirmés acá
+      viendo que la transferencia llegó de verdad. Así nadie puede inflar su ranking clickeando
+      "Comprar" sin haber vendido nada real.
+    </p>
+    <div class="ad-prod-table-wrap" style="margin-bottom:32px;">
+      <table id="adPendingTable">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Revendedor</th>
+            <th>Teléfono</th>
+            <th>Producto</th>
+            <th>Monto</th>
+            <th>Comprador (UID / nick)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="adPendingTableBody">
+          <tr><td colspan="7" class="ad-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="ad-section-label" style="display:flex; align-items:center; gap:10px;">
+      <span>Todos los pedidos (corregir precio / estado)</span>
+      <button class="ad-btn secondary" id="adToggleAllOrdersBtn" style="width:auto; padding:6px 14px; font-size:0.72rem; text-transform:none; letter-spacing:normal;">Mostrar</button>
+    </div>
+    <p style="font-size:0.78rem; color:var(--c-gray-soft); max-width:620px; margin-bottom:12px;">
+      Para cuando un pedido se cargó mal (precio equivocado, producto que no era, etc.). Cambiá
+      el precio o el estado y tocá "Guardar" — el monto del ranking se ajusta solo (suma o resta
+      la diferencia según corresponda). "Eliminar" borra el pedido por completo y también
+      descuenta su monto del ranking si estaba confirmado. Se muestran los últimos 100.
+    </p>
+    <div class="ad-prod-table-wrap hidden" id="adAllOrdersWrap" style="margin-bottom:32px;">
+      <table id="adAllOrdersTable">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Revendedor</th>
+            <th>Producto</th>
+            <th>Monto</th>
+            <th>Estado</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="adAllOrdersTableBody">
+          <tr><td colspan="6" class="ad-empty">Cargando...</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="ad-stats" id="ventasResumen">
       <div class="ad-stat"><div class="n" id="ventasHoyN">0</div><div class="l">Pedidos hoy</div></div>
@@ -306,7 +363,10 @@
 
     <div class="ad-section-label" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-top:32px;">
       <span>Ranking por mes (histórico)</span>
-      <select id="adMonthSelect" class="ad-mini-input" style="width:auto; min-width:160px;"></select>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <select id="adMonthSelect" class="ad-mini-input" style="width:auto; min-width:160px;"></select>
+        <button class="ad-btn secondary" id="adAddAdjustmentBtn" style="width:auto; padding:6px 14px; font-size:0.72rem; text-transform:none; letter-spacing:normal;">+ Ajuste manual</button>
+      </div>
     </div>
     <p style="font-size:0.78rem; color:var(--c-gray-soft); max-width:620px; margin-bottom:12px;">
       Quién generó más plata en un mes puntual, incluidos los meses ya cerrados — así no se
@@ -319,18 +379,21 @@
             <th>#</th>
             <th>Revendedor</th>
             <th>Monto generado</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="adMonthTableBody">
-          <tr><td colspan="3" class="ad-empty">Cargando...</td></tr>
+          <tr><td colspan="4" class="ad-empty">Cargando...</td></tr>
         </tbody>
       </table>
     </div>
     <p style="font-size:0.72rem; color:var(--c-gray-soft); margin:-4px 0 20px;">
-      El podio de arriba (con montos) es solo para vos. El botón de "Recalcular" actualiza el
-      ranking público de <em>/revendedores.html</em> (sin montos, solo posiciones) con la
-      cantidad de ventas históricas de cada uno. Usalo la primera vez o si notás que el
-      ranking público no coincide con la realidad — las ventas nuevas se suman solas.
+      El monto de esta tabla es EDITABLE: cambialo y tocá "Guardar" en la fila para ajustarlo
+      a mano (por ejemplo, si un pedido se cargó con el precio mal o hace falta corregir algo
+      para que coincida con el saldo real). Este valor es el que ve todo el mundo en el Top 3
+      público de <em>/revendedores.html</em> — se actualiza al instante. El botón "Recalcular"
+      de más abajo reconstruye el monto del MES ACTUAL desde los pedidos confirmados, por si
+      alguna vez preferís volver a partir de ahí en vez de ajustar a mano.
     </p>
 
     <div class="ad-prod-table-wrap">
@@ -547,7 +610,7 @@
 <script type="module">
   import {
     db, auth, doc, getDoc, updateDoc, setDoc, deleteDoc, collection,
-    addDoc, onSnapshot, query, orderBy, signInWithEmailAndPassword,
+    addDoc, onSnapshot, query, orderBy, increment, signInWithEmailAndPassword,
     onAuthStateChanged, signOut,
   } from "./firebase-init.js";
   import { NARANJAX, NARANJAX_RESELLER } from "./config.js";
@@ -811,10 +874,18 @@
         const month = startOfMonth();
 
         const byReseller = new Map();
+        const pendingOrders = [];
+        const allOrders = [];
         let totalHoy = 0, totalSemana = 0, totalMes = 0, totalTodo = 0;
 
         snap.forEach((docSnap) => {
           const d = docSnap.data();
+          // Los pedidos de antes de este cambio no tienen "status": se
+          // consideran confirmados (así no se pierde ni recalcula nada
+          // de lo que ya estaba contando para el ranking). Los nuevos
+          // arrancan en "pending" y solo pasan a "confirmed" cuando el
+          // admin los aprueba a mano.
+          const status = d.status || "confirmed";
           const createdMs = d.createdAt && d.createdAt.toDate ? d.createdAt.toDate().getTime() : 0;
           const name = d.resellerName || "—";
           const price = Number(d.price) || 0;
@@ -824,14 +895,31 @@
           }
           const r = byReseller.get(name);
           r.total++;
-          r.monto += price;
           totalTodo++;
           if (createdMs >= today.getTime()) { r.hoy++; totalHoy++; }
           if (createdMs >= week.getTime()) { r.semana++; totalSemana++; }
-          if (createdMs >= month.getTime()) { r.mes++; r.montoMes += price; totalMes++; }
+          if (createdMs >= month.getTime()) { r.mes++; totalMes++; }
+
+          // El monto vendido (podium, ranking por mes, recalcular Top 3)
+          // solo suma pedidos CONFIRMADOS — así un pedido pendiente o
+          // rechazado nunca infla la plata generada de nadie.
+          if (status === "confirmed") {
+            r.monto += price;
+            if (createdMs >= month.getTime()) r.montoMes += price;
+          }
+
+          if (status === "pending") {
+            pendingOrders.push({ id: docSnap.id, ...d });
+          }
+
+          if (allOrders.length < 100) {
+            allOrders.push({ id: docSnap.id, ...d, status });
+          }
         });
 
         lastByReseller = byReseller;
+        renderPendingOrders(pendingOrders);
+        renderAllOrders(allOrders);
 
         ventasHoyN.textContent = String(totalHoy);
         ventasSemanaN.textContent = String(totalSemana);
@@ -877,6 +965,213 @@
           .join("");
       }
     );
+  }
+
+  /* ================= PEDIDOS PENDIENTES DE CONFIRMAR ================= */
+  // El monto de un pedido solo se suma al ranking cuando el admin lo
+  // confirma acá, viendo que la transferencia llegó de verdad. Evita
+  // que cualquiera infle su propio Top 3 clickeando "Comprar" en falso.
+
+  const adPendingTableBody = document.getElementById("adPendingTableBody");
+  const adPendingCount = document.getElementById("adPendingCount");
+
+  function monthKeyFromTimestamp(ts) {
+    const date = ts && ts.toDate ? ts.toDate() : new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  }
+
+  function renderPendingOrders(pendingOrders) {
+    adPendingCount.textContent = String(pendingOrders.length);
+
+    if (!pendingOrders.length) {
+      adPendingTableBody.innerHTML = '<tr><td colspan="7" class="ad-empty">No hay pedidos pendientes.</td></tr>';
+      return;
+    }
+
+    adPendingTableBody.innerHTML = pendingOrders
+      .map(
+        (o) => `
+      <tr data-id="${o.id}">
+        <td>${fmt(o.createdAt)}</td>
+        <td>${escapeHtml(o.resellerName || "—")}</td>
+        <td>${escapeHtml(o.resellerPhone || "—")}</td>
+        <td>${escapeHtml(o.productName || "—")}</td>
+        <td>${formatPrice(o.price)}</td>
+        <td>${escapeHtml(o.buyerUid || "—")} / ${escapeHtml(o.buyerNickname || "—")}</td>
+        <td style="display:flex; gap:6px;">
+          <button class="ad-save-row js-confirm-order">Confirmar</button>
+          <button class="ad-del js-reject-order">Rechazar</button>
+        </td>
+      </tr>`
+      )
+      .join("");
+
+    adPendingTableBody.querySelectorAll(".js-confirm-order").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        const order = pendingOrders.find((o) => o.id === id);
+        if (!order) return;
+
+        btn.disabled = true;
+        btn.textContent = "Confirmando...";
+        try {
+          await updateDoc(doc(db, "resellerOrders", id), { status: "confirmed" });
+
+          // Recién ahora se suma al ranking público del mes del pedido
+          // (no necesariamente "hoy", por si se confirma tarde).
+          const monthKey = monthKeyFromTimestamp(order.createdAt);
+          const statsId = `${monthKey}_${safeStatsKey(order.resellerName)}`;
+          await setDoc(
+            doc(db, "resellerMonthlyStats", statsId),
+            { name: order.resellerName || "—", month: monthKey, amount: increment(Number(order.price) || 0) },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error(err);
+          alert("Hubo un error al confirmar. Probá de nuevo.");
+          btn.disabled = false;
+          btn.textContent = "Confirmar";
+        }
+      });
+    });
+
+    adPendingTableBody.querySelectorAll(".js-reject-order").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        if (!confirm("¿Rechazar este pedido? No va a contar como venta.")) return;
+        btn.disabled = true;
+        try {
+          await updateDoc(doc(db, "resellerOrders", id), { status: "rejected" });
+        } catch (err) {
+          console.error(err);
+          alert("Hubo un error al rechazar. Probá de nuevo.");
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  /* ================= TODOS LOS PEDIDOS (corregir errores) ================= */
+  // A diferencia de "Pedidos pendientes", acá se ven y editan TODOS
+  // los pedidos (los últimos 100), incluidos los ya confirmados, para
+  // poder arreglar un precio mal cargado o un estado equivocado. El
+  // ranking mensual se ajusta solo por la DIFERENCIA entre lo que
+  // aportaba antes y lo que aporta después, así nunca queda
+  // desincronizado.
+
+  const adAllOrdersTableBody = document.getElementById("adAllOrdersTableBody");
+  const adAllOrdersWrap = document.getElementById("adAllOrdersWrap");
+  const adToggleAllOrdersBtn = document.getElementById("adToggleAllOrdersBtn");
+
+  adToggleAllOrdersBtn?.addEventListener("click", () => {
+    const willShow = adAllOrdersWrap.classList.contains("hidden");
+    adAllOrdersWrap.classList.toggle("hidden", !willShow);
+    adToggleAllOrdersBtn.textContent = willShow ? "Ocultar" : "Mostrar";
+  });
+
+  // Cuánto le aporta hoy este pedido al monto del ranking (0 si no
+  // está confirmado).
+  function orderContribution(order) {
+    return order.status === "confirmed" ? Number(order.price) || 0 : 0;
+  }
+
+  // Suma/resta en resellerMonthlyStats la diferencia entre el aporte
+  // viejo y el nuevo de un pedido, en el mes en el que se creó.
+  async function adjustMonthlyStats(order, oldContribution, newContribution) {
+    const delta = newContribution - oldContribution;
+    if (!delta) return;
+    const monthKey = monthKeyFromTimestamp(order.createdAt);
+    const statsId = `${monthKey}_${safeStatsKey(order.resellerName)}`;
+    await setDoc(
+      doc(db, "resellerMonthlyStats", statsId),
+      { name: order.resellerName || "—", month: monthKey, amount: increment(delta) },
+      { merge: true }
+    );
+  }
+
+  function renderAllOrders(allOrders) {
+    if (!allOrders.length) {
+      adAllOrdersTableBody.innerHTML = '<tr><td colspan="6" class="ad-empty">Todavía no hay pedidos registrados.</td></tr>';
+      return;
+    }
+
+    adAllOrdersTableBody.innerHTML = allOrders
+      .map(
+        (o) => `
+      <tr data-id="${o.id}">
+        <td>${fmt(o.createdAt)}</td>
+        <td>${escapeHtml(o.resellerName || "—")}</td>
+        <td>${escapeHtml(o.productName || "—")}</td>
+        <td><input class="ad-mini-input js-order-price" type="number" value="${Number(o.price) || 0}" style="width:110px;" /></td>
+        <td>
+          <select class="ad-mini-input js-order-status">
+            <option value="pending" ${o.status === "pending" ? "selected" : ""}>Pendiente</option>
+            <option value="confirmed" ${o.status === "confirmed" ? "selected" : ""}>Confirmado</option>
+            <option value="rejected" ${o.status === "rejected" ? "selected" : ""}>Rechazado</option>
+          </select>
+        </td>
+        <td style="display:flex; gap:6px;">
+          <button class="ad-save-row js-save-order">Guardar</button>
+          <button class="ad-del js-delete-order">Eliminar</button>
+        </td>
+      </tr>`
+      )
+      .join("");
+
+    adAllOrdersTableBody.querySelectorAll(".js-save-order").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        const order = allOrders.find((o) => o.id === id);
+        if (!order) return;
+
+        const newPrice = Number(tr.querySelector(".js-order-price").value) || 0;
+        const newStatus = tr.querySelector(".js-order-status").value;
+
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        try {
+          const oldContribution = orderContribution(order);
+          const newContribution = newStatus === "confirmed" ? newPrice : 0;
+
+          await updateDoc(doc(db, "resellerOrders", id), { price: newPrice, status: newStatus });
+          await adjustMonthlyStats(order, oldContribution, newContribution);
+
+          btn.textContent = "¡Guardado!";
+        } catch (err) {
+          console.error(err);
+          btn.textContent = "Error";
+        } finally {
+          setTimeout(() => {
+            btn.textContent = "Guardar";
+            btn.disabled = false;
+          }, 1200);
+        }
+      });
+    });
+
+    adAllOrdersTableBody.querySelectorAll(".js-delete-order").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const id = tr.dataset.id;
+        const order = allOrders.find((o) => o.id === id);
+        if (!order) return;
+        if (!confirm("¿Eliminar este pedido? También se descuenta del ranking si estaba confirmado.")) return;
+
+        btn.disabled = true;
+        try {
+          const oldContribution = orderContribution(order);
+          await deleteDoc(doc(db, "resellerOrders", id));
+          await adjustMonthlyStats(order, oldContribution, 0);
+        } catch (err) {
+          console.error(err);
+          alert("Hubo un error al eliminar. Probá de nuevo.");
+          btn.disabled = false;
+        }
+      });
+    });
   }
 
   function formatPrice(value) {
@@ -941,16 +1236,68 @@
     adMonthTableBody.innerHTML = rows
       .map(
         (r, i) => `
-      <tr>
+      <tr data-name="${escapeHtml(r.name || "—")}" data-month="${monthKey}">
         <td>${i + 1}</td>
         <td>${escapeHtml(r.name || "—")}</td>
-        <td>${formatPrice(r.amount)}</td>
+        <td><input class="ad-mini-input js-amount" type="number" value="${r.amount}" style="width:130px;" /></td>
+        <td><button class="ad-save-row js-save-amount">Guardar</button></td>
       </tr>`
       )
       .join("");
+
+    adMonthTableBody.querySelectorAll(".js-save-amount").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const tr = btn.closest("tr");
+        const name = tr.dataset.name;
+        const month = tr.dataset.month;
+        const newAmount = Number(tr.querySelector(".js-amount").value) || 0;
+
+        btn.disabled = true;
+        btn.textContent = "Guardando...";
+        try {
+          await setDoc(doc(db, "resellerMonthlyStats", `${month}_${safeStatsKey(name)}`), {
+            name,
+            month,
+            amount: newAmount,
+          });
+          btn.textContent = "¡Guardado!";
+        } catch (err) {
+          console.error(err);
+          btn.textContent = "Error";
+        } finally {
+          setTimeout(() => {
+            btn.textContent = "Guardar";
+            btn.disabled = false;
+          }, 1200);
+        }
+      });
+    });
   }
 
   adMonthSelect.addEventListener("change", renderMonthTable);
+
+  // Ajuste manual: crea (o pisa) el monto de un revendedor para el mes
+  // elegido, incluso si todavía no tiene ningún pedido confirmado ese
+  // mes — para dar de alta un ajuste puntual sin pasar por un pedido.
+  const adAddAdjustmentBtn = document.getElementById("adAddAdjustmentBtn");
+  adAddAdjustmentBtn?.addEventListener("click", async () => {
+    const name = prompt("Nombre del revendedor (tal como aparece en el ranking):");
+    if (!name || !name.trim()) return;
+    const amountStr = prompt(`Monto para ${monthKeyLabel(adMonthSelect.value)}:`, "0");
+    if (amountStr == null) return;
+    const amount = Number(amountStr) || 0;
+
+    try {
+      await setDoc(doc(db, "resellerMonthlyStats", `${adMonthSelect.value}_${safeStatsKey(name.trim())}`), {
+        name: name.trim(),
+        month: adMonthSelect.value,
+        amount,
+      });
+    } catch (err) {
+      console.error(err);
+      alert("Hubo un error al guardar el ajuste.");
+    }
+  });
 
   // Mismo criterio de sanitización que usa revendedores.html para
   // armar la clave del documento en "resellerMonthlyStats" (los IDs
@@ -1009,7 +1356,7 @@
     const q = query(collection(db, "resellerSessions"), orderBy("lastSeen", "desc"));
     onSnapshot(q, (snap) => {
       if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="5" class="ad-empty">Todavía no hay revendedores registrados.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="ad-empty">Todavía no hay revendedores registrados.</td></tr>';
         statTotal.textContent = "0";
         statOnline.textContent = "0";
         return;
@@ -1029,6 +1376,7 @@
           <tr>
             <td><span class="dot ${isOnline ? "online" : "offline"}"></span>${isOnline ? "En línea" : "Desconectado"}</td>
             <td>${escapeHtml(d.name || "—")}</td>
+            <td>${escapeHtml(d.phone || "—")}</td>
             <td>${fmt(d.loggedInAt)}</td>
             <td>${fmt(d.lastSeen)}</td>
             <td><button class="ad-del" data-id="${docSnap.id}">Eliminar</button></td>
