@@ -175,6 +175,14 @@
 </head>
 <body class="font-body bg-base text-white">
 
+<!-- ============ MANTENIMIENTO (revendedores) ============ -->
+<div class="rv-wrap" id="rvMaintenanceOverlay" style="display:none;">
+  <div class="rv-card" style="text-align:center;">
+    <h1>En mantenimiento</h1>
+    <p class="sub" id="rvMaintenanceMsg">Estamos haciendo mejoras. Volvemos en breve, ¡gracias por tu paciencia!</p>
+  </div>
+</div>
+
 <!-- ============ LOGIN ============ -->
 <div class="rv-wrap" id="rvLoginSection">
   <div class="rv-card">
@@ -387,6 +395,31 @@
 
   const STORAGE_KEY = "rv_session_id";
 
+  /* ================= MANTENIMIENTO (revendedores) ================= */
+  // Interruptor propio (settings/maintenanceReseller), independiente
+  // del de index.html, editable desde admin.html → pestaña
+  // "Mantenimiento" → sección "Revendedores". Mientras está activo,
+  // tapa tanto el login como el catálogo (aunque ya tenga sesión
+  // guardada) con una pantalla fija, sin bloquear a este mismo panel
+  // de admin ni a index.html.
+  const maintenanceOverlay = document.getElementById("rvMaintenanceOverlay");
+  const maintenanceMsgEl = document.getElementById("rvMaintenanceMsg");
+  let resellerMaintenanceActive = false;
+
+  onSnapshot(doc(db, "settings", "maintenanceReseller"), (snap) => {
+    const data = snap.exists() ? snap.data() : { active: false, message: "" };
+    resellerMaintenanceActive = !!data.active;
+    if (resellerMaintenanceActive) {
+      if (data.message) maintenanceMsgEl.textContent = data.message;
+      maintenanceOverlay.style.display = "flex";
+      loginSection.style.display = "none";
+      catalogSection.classList.add("hidden");
+    } else {
+      maintenanceOverlay.style.display = "none";
+      loginSection.style.display = "";
+    }
+  });
+
   // Se guardan acá para poder asociar cada pedido (resellerOrders) al
   // revendedor que lo hizo, sin tener que volver a pedir el nombre.
   let currentSessionId = null;
@@ -455,7 +488,7 @@
   const existingSessionId = localStorage.getItem(STORAGE_KEY);
   const existingName = localStorage.getItem("rv_name");
   const existingPhone = localStorage.getItem("rv_phone");
-  if (existingSessionId && existingName) {
+  if (existingSessionId && existingName && !resellerMaintenanceActive) {
     currentSessionId = existingSessionId;
     currentResellerName = existingName;
     currentResellerPhone = existingPhone || "";
@@ -464,6 +497,8 @@
   }
 
   submitBtn.addEventListener("click", async () => {
+    if (resellerMaintenanceActive) return;
+
     const name = nameInput.value.trim();
     const phone = phoneInput.value.trim();
     const code = codeInput.value.trim();
@@ -496,6 +531,17 @@
       const phoneNormalized = phone.replace(/\D/g, "");
       if (allowedPhones.length > 0 && !allowedPhones.includes(phoneNormalized)) {
         setMsg("Este número no está autorizado para acceder. Consultá con el administrador.", "error");
+        submitBtn.disabled = false;
+        return;
+      }
+
+      // Números bloqueados puntualmente desde admin.html (pestaña
+      // "Revendedores" → botón "Bloquear"), aparte de la lista blanca
+      // de arriba. Firestore rechaza igual la sesión del lado del
+      // servidor si esto se saltea, pero acá damos un mensaje claro.
+      const blockedPhones = Array.isArray(codeSnap.data().blockedPhones) ? codeSnap.data().blockedPhones : [];
+      if (blockedPhones.includes(phoneNormalized)) {
+        setMsg("Tu acceso fue bloqueado. Consultá con el administrador.", "error");
         submitBtn.disabled = false;
         return;
       }
