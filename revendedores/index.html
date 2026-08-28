@@ -146,6 +146,31 @@
     .rv-top3-card.p1 { order: -1; }
   }
   .btn-ghost-active { border-color: var(--c-blue-glow) !important; background: rgba(0,168,255,0.1) !important; color: var(--c-blue-glow); }
+
+  /* Selector de modalidad: Ilimitado / Stock */
+  .rv-mode-toggle {
+    display: inline-flex;
+    padding: 4px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    gap: 4px;
+  }
+  .rv-mode-toggle .btn-ghost { border: none; }
+
+  /* Aviso "una por carga / según stock" en el apartado Stock */
+  .rv-stock-banner {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    color: #ffb020;
+    background: rgba(255,176,32,0.08);
+    border: 1px dashed rgba(255,176,32,0.35);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    margin-bottom: 20px;
+  }
 </style>
 </head>
 <body class="font-body bg-base text-white">
@@ -185,7 +210,6 @@
       <p class="text-sm text-[var(--c-gray-soft)] mt-1">Estos son tus precios preferenciales de revendedor. Elegí un paquete y coordinamos el pago por WhatsApp.</p>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-      <button type="button" id="rvTop3ToggleBtn" class="btn-ghost text-xs px-4 py-2 rounded-full">🏆 Top 3 revendedores</button>
       <button type="button" id="rvLogoutBtn" class="btn-ghost text-xs px-4 py-2 rounded-full">No soy yo / salir</button>
     </div>
   </header>
@@ -200,12 +224,36 @@
     </div>
   </section>
 
-  <section class="max-w-6xl mx-auto px-5 pb-20">
+  <!-- ===== SELECTOR DE MODALIDAD: ILIMITADO / STOCK ===== -->
+  <div class="max-w-6xl mx-auto px-5 pt-2 pb-6 flex items-center justify-center flex-wrap gap-3">
+    <div class="rv-mode-toggle" role="tablist" aria-label="Modalidad de catálogo">
+      <button type="button" id="rvModeUnlimitedBtn" class="btn-ghost text-sm px-5 py-2.5 rounded-full btn-ghost-active" role="tab" aria-selected="true">♾️ Ilimitado</button>
+      <button type="button" id="rvModeStockBtn" class="btn-ghost text-sm px-5 py-2.5 rounded-full" role="tab" aria-selected="false">📦 Stock</button>
+    </div>
+    <button type="button" id="rvTop3ToggleBtn" class="btn-ghost text-xs px-4 py-2 rounded-full">🏆 Top 3 revendedores</button>
+  </div>
+
+  <!-- ===== CATÁLOGO: ILIMITADO ===== -->
+  <section class="max-w-6xl mx-auto px-5 pb-20" id="rvUnlimitedSection">
     <div class="text-center mb-8">
-      <p class="text-xs tracking-[0.3em] text-electric mb-2">RECARGAS</p>
+      <p class="text-xs tracking-[0.3em] text-electric mb-2">RECARGAS · ILIMITADO</p>
       <h2 class="font-display text-3xl md:text-4xl">Elegí tu paquete de diamantes</h2>
     </div>
     <div id="rvProductsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+      <div class="gem-card glass h-72 skeleton"></div>
+      <div class="gem-card glass h-72 skeleton"></div>
+      <div class="gem-card glass h-72 skeleton"></div>
+    </div>
+  </section>
+
+  <!-- ===== CATÁLOGO: STOCK (carga limitada) ===== -->
+  <section class="max-w-6xl mx-auto px-5 pb-20 hidden" id="rvStockSection">
+    <div class="text-center mb-6">
+      <p class="text-xs tracking-[0.3em] text-electric mb-2">RECARGAS · STOCK</p>
+      <h2 class="font-display text-3xl md:text-4xl">Diamantes por stock</h2>
+    </div>
+    <div class="rv-stock-banner">🚨 Una por carga / según stock disponible 🚨</div>
+    <div id="rvStockProductsGrid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
       <div class="gem-card glass h-72 skeleton"></div>
       <div class="gem-card glass h-72 skeleton"></div>
       <div class="gem-card glass h-72 skeleton"></div>
@@ -267,6 +315,10 @@
             <button type="button" class="js-copy copy-btn text-xs px-2 py-1 rounded border border-white/15 hover:border-electric transition-colors" data-copy-target="#pay-cvu">Copiar</button>
           </dd>
         </div>
+        <div class="flex justify-between items-center gap-4" id="payNoteRow" hidden>
+          <dt class="text-gray-400">Nota</dt>
+          <dd class="text-right font-medium" id="payNoteText">—</dd>
+        </div>
       </dl>
 
       <p class="text-xs text-amber-400/90 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2 mb-6">
@@ -284,14 +336,21 @@
   import {
     db, doc, getDoc, collection, addDoc, setDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp
   } from "../firebase-init.js";
-  import { SETTINGS, NARANJAX_RESELLER } from "../config.js";
+  import { SETTINGS, NARANJAX_RESELLER, NARANJAX_RESELLER_STOCK } from "../config.js";
 
   // Datos de pago de REVENDEDORES (alias/CBU propios, distintos a los
   // de la tienda principal): viven en Firestore (settings/paymentReseller)
   // y se editan desde admin.html → pestaña "Datos de pago" → sección
   // "Revendedores". NARANJAX_RESELLER de config.js queda como valor de
   // respaldo hasta el primer guardado.
-  let PAYMENT_DATA = NARANJAX_RESELLER;
+  //
+  // Modalidad "Stock" (carga limitada) tiene su PROPIO alias, separado
+  // del de "Ilimitado" (settings/paymentResellerStock). Se elige cuál
+  // de los dos mostrar en el paso 2 del checkout según de qué apartado
+  // vino el producto (product._source).
+  let PAYMENT_DATA_UNLIMITED = NARANJAX_RESELLER;
+  let PAYMENT_DATA_STOCK = NARANJAX_RESELLER_STOCK;
+  let PAYMENT_DATA = PAYMENT_DATA_UNLIMITED;
 
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => document.querySelectorAll(sel);
@@ -321,6 +380,10 @@
   const logoutBtn = document.getElementById("rvLogoutBtn");
   const top3ToggleBtn = document.getElementById("rvTop3ToggleBtn");
   const top3Section = document.getElementById("rvTop3Section");
+  const modeUnlimitedBtn = document.getElementById("rvModeUnlimitedBtn");
+  const modeStockBtn = document.getElementById("rvModeStockBtn");
+  const unlimitedSection = document.getElementById("rvUnlimitedSection");
+  const stockSection = document.getElementById("rvStockSection");
 
   const STORAGE_KEY = "rv_session_id";
 
@@ -351,6 +414,7 @@
     catalogSection.classList.remove("hidden");
     nameDisplay.textContent = name;
     subscribeResellerProducts();
+    subscribeStockProducts();
     subscribeTop3();
   }
 
@@ -368,6 +432,24 @@
       top3Section.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   });
+
+  /* ================= MODALIDAD: ILIMITADO / STOCK ================= */
+  // Dos catálogos independientes (colecciones distintas en Firestore),
+  // se muestra uno u otro sin volver a pedir datos: ambos ya se
+  // suscriben al entrar al catálogo, este botón solo cambia cuál
+  // sección queda visible.
+  function setMode(mode) {
+    const isStock = mode === "stock";
+    unlimitedSection.classList.toggle("hidden", isStock);
+    stockSection.classList.toggle("hidden", !isStock);
+    modeUnlimitedBtn.classList.toggle("btn-ghost-active", !isStock);
+    modeStockBtn.classList.toggle("btn-ghost-active", isStock);
+    modeUnlimitedBtn.setAttribute("aria-selected", String(!isStock));
+    modeStockBtn.setAttribute("aria-selected", String(isStock));
+  }
+
+  modeUnlimitedBtn?.addEventListener("click", () => setMode("unlimited"));
+  modeStockBtn?.addEventListener("click", () => setMode("stock"));
 
   // Si ya tiene sesión guardada en este navegador, entra directo
   const existingSessionId = localStorage.getItem(STORAGE_KEY);
@@ -456,6 +538,9 @@
   let resellerPricingById = new Map();
   let mergedProducts = [];
 
+  let stockProductsById = new Map();
+  let mergedStockProducts = [];
+
   const DIAMOND_PLACEHOLDER_SVG = `
     <svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg" class="diamond-icon">
       <polygon points="23,3 40,16 23,43 6,16" fill="url(#diamondGrad)" stroke="var(--c-blue-glow)" stroke-width="1.2"/>
@@ -477,14 +562,15 @@
       .filter((p) => p.visible !== false)
       .map((p) => {
         const rp = resellerPricingById.get(p.id);
-        if (p.type === "quantity") {
-          return { ...p, stepPrice: rp ? rp.stepPrice : null };
-        }
-        return {
-          ...p,
-          price: rp ? rp.price : null, // precio de revendedor (nunca el de tienda)
-          discountPrice: rp ? rp.discountPrice : null,
-        };
+        const base =
+          p.type === "quantity"
+            ? { ...p, stepPrice: rp ? rp.stepPrice : null }
+            : {
+                ...p,
+                price: rp ? rp.price : null, // precio de revendedor (nunca el de tienda)
+                discountPrice: rp ? rp.discountPrice : null,
+              };
+        return { ...base, _source: "unlimited" };
       })
       .filter((p) => (p.type === "quantity" ? p.stepPrice != null : p.price != null)) // sin precio de revendedor cargado todavía → no se muestra
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
@@ -500,6 +586,27 @@
     onSnapshot(collection(db, "resellerPricing"), (snap) => {
       resellerPricingById = new Map(snap.docs.map((d) => [d.id, d.data()]));
       mergeAndRender();
+    });
+  }
+
+  // Catálogo de la modalidad "Stock" (carga limitada): vive en su
+  // propia colección ("resellerStockProducts") con precio final ya
+  // incluido, sin merge con resellerPricing porque no hay precio de
+  // tienda asociado.
+  function mergeAndRenderStock() {
+    mergedStockProducts = Array.from(stockProductsById.values())
+      .filter((p) => p.visible !== false)
+      .map((p) => ({ ...p, _source: "stock" }))
+      .filter((p) => (p.type === "quantity" ? p.stepPrice != null : p.price != null))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+    renderStockProducts();
+  }
+
+  function subscribeStockProducts() {
+    onSnapshot(query(collection(db, "resellerStockProducts"), orderBy("order")), (snap) => {
+      stockProductsById = new Map(snap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
+      mergeAndRenderStock();
     });
   }
 
@@ -553,7 +660,7 @@
 
     const buyBtn = outOfStock
       ? `<button type="button" class="btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" disabled>Sin stock</button>`
-      : `<button type="button" class="js-rv-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-id="${product.id}">Comprar</button>`;
+      : `<button type="button" class="js-rv-buy-btn btn-primary pack-card__buy text-sm px-4 py-3 rounded-full" data-product-id="${product.id}" data-source="${product._source || "unlimited"}">Comprar</button>`;
 
     return `
       <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}">
@@ -594,7 +701,8 @@
     return `
       <article class="gem-card pack-card glass glow-border relative${outOfStock ? " pack-card--oos" : ""}"
                data-qty-card data-step="${step}" data-min="${min}" data-max="${max ?? ""}"
-               data-unit-price="${unitPrice}" data-unit="${escapeHtml(unitName)}">
+               data-unit-price="${unitPrice}" data-unit="${escapeHtml(unitName)}"
+               data-source="${product._source || "unlimited"}">
         ${outOfStock ? `<span class="stock-badge">Sin stock</span>` : ""}
         <div class="pack-card__media">${img}</div>
         <div class="pack-card__body">
@@ -618,6 +726,7 @@
       const max = card.dataset.max ? Number(card.dataset.max) : null;
       const unitPrice = Number(card.dataset.unitPrice) || 0;
       const unit = card.dataset.unit || "";
+      const source = card.dataset.source || "unlimited";
       const valueEl = card.querySelector(".js-qty-value");
       const priceEl = card.querySelector(".js-qty-price");
       let qty = min;
@@ -646,30 +755,53 @@
           name: `${qty} ${unit}`,
           price: qty * unitPrice,
           discountPrice: null,
+          _source: source,
         });
       });
     });
   }
 
-  function renderResellerProducts() {
-    const grid = document.getElementById("rvProductsGrid");
+  // Función compartida por los dos catálogos (Ilimitado y Stock): solo
+  // cambia el grid destino, la lista de productos y el mensaje de
+  // "vacío". El botón "Comprar" busca el producto en la lista correcta
+  // usando data-source, así nunca se cruzan los precios/alias de una
+  // modalidad con la otra.
+  function renderProductsInto(grid, products, emptyMessage) {
     if (!grid) return;
 
-    if (!mergedProducts.length) {
-      grid.innerHTML = `<p class="col-span-full text-center text-[var(--c-gray-soft)]">Todavía no hay precios de revendedor cargados. Escribinos por WhatsApp.</p>`;
+    if (!products.length) {
+      grid.innerHTML = `<p class="col-span-full text-center text-[var(--c-gray-soft)]">${emptyMessage}</p>`;
       return;
     }
 
-    grid.innerHTML = mergedProducts.map(cardTemplate).join("");
+    grid.innerHTML = products.map(cardTemplate).join("");
 
     grid.querySelectorAll(".js-rv-buy-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
-        const product = mergedProducts.find((p) => p.id === btn.dataset.productId);
+        const source = btn.dataset.source || "unlimited";
+        const list = source === "stock" ? mergedStockProducts : mergedProducts;
+        const product = list.find((p) => p.id === btn.dataset.productId);
         if (product) openCheckout(product);
       });
     });
 
     bindQuantityCards(grid);
+  }
+
+  function renderResellerProducts() {
+    renderProductsInto(
+      document.getElementById("rvProductsGrid"),
+      mergedProducts,
+      "Todavía no hay precios de revendedor cargados. Escribinos por WhatsApp."
+    );
+  }
+
+  function renderStockProducts() {
+    renderProductsInto(
+      document.getElementById("rvStockProductsGrid"),
+      mergedStockProducts,
+      "Todavía no hay productos de Stock cargados. Escribinos por WhatsApp."
+    );
   }
 
   /* ================= CHECKOUT: PASO 1 (UID + NICK) → PASO 2 (NARANJA X) ================= */
@@ -680,13 +812,33 @@
   function renderNaranjaXData() {
     $$(".js-pay-holder").forEach((el) => (el.textContent = PAYMENT_DATA.holder));
     $$(".js-pay-alias").forEach((el) => (el.textContent = PAYMENT_DATA.alias));
-    $$(".js-pay-cvu").forEach((el) => (el.textContent = PAYMENT_DATA.cvu));
+    $$(".js-pay-cvu").forEach((el) => (el.textContent = PAYMENT_DATA.cvu || "—"));
+    const noteRow = document.getElementById("payNoteRow");
+    const noteText = document.getElementById("payNoteText");
+    if (noteRow && noteText) {
+      if (PAYMENT_DATA.note) {
+        noteText.textContent = PAYMENT_DATA.note;
+        noteRow.hidden = false;
+      } else {
+        noteRow.hidden = true;
+      }
+    }
   }
 
   function subscribePayment() {
     onSnapshot(doc(db, "settings", "paymentReseller"), (snap) => {
-      PAYMENT_DATA = snap.exists() ? snap.data() : NARANJAX_RESELLER;
-      renderNaranjaXData();
+      PAYMENT_DATA_UNLIMITED = snap.exists() ? snap.data() : NARANJAX_RESELLER;
+      if (!checkoutProduct || checkoutProduct._source !== "stock") {
+        PAYMENT_DATA = PAYMENT_DATA_UNLIMITED;
+        renderNaranjaXData();
+      }
+    });
+    onSnapshot(doc(db, "settings", "paymentResellerStock"), (snap) => {
+      PAYMENT_DATA_STOCK = snap.exists() ? snap.data() : NARANJAX_RESELLER_STOCK;
+      if (checkoutProduct && checkoutProduct._source === "stock") {
+        PAYMENT_DATA = PAYMENT_DATA_STOCK;
+        renderNaranjaXData();
+      }
     });
   }
 
@@ -696,10 +848,11 @@
       "",
       "🔷 Quiero comprar:",
       product.name,
-      "",
-      "🔹 Precio revendedor:",
-      formatPrice(finalPrice(product)),
     ];
+    if (product._source === "stock") {
+      lines.push("", "📦 Modalidad: STOCK (una por carga, según disponibilidad)");
+    }
+    lines.push("", "🔹 Precio revendedor:", formatPrice(finalPrice(product)));
     if (buyer) {
       lines.push("", "🆔 Mi ID (UID):", buyer.uid, "🎮 Nombre en el juego:", buyer.nickname);
     }
@@ -711,6 +864,12 @@
   function openCheckout(product) {
     checkoutProduct = product;
     checkoutBuyer = null;
+
+    // El alias/CVU que se muestra en el paso 2 depende de si el
+    // producto vino del catálogo "Ilimitado" o de "Stock": nunca se
+    // mezclan.
+    PAYMENT_DATA = product._source === "stock" ? PAYMENT_DATA_STOCK : PAYMENT_DATA_UNLIMITED;
+    renderNaranjaXData();
 
     const modal = $("#checkout-modal");
     const step1 = $("#checkout-step-1");
@@ -784,6 +943,7 @@
           resellerPhone: currentResellerPhone || "",
           productId: checkoutProduct.id || null,
           productName: checkoutProduct.name,
+          source: checkoutProduct._source || "unlimited",
           price: finalPrice(checkoutProduct),
           buyerUid: checkoutBuyer.uid,
           buyerNickname: checkoutBuyer.nickname,

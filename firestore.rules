@@ -96,5 +96,17 @@ service cloud.firestore {
       allow read: if true;
       allow write: if request.auth != null;
     }
+
+    // Catálogo de productos de la modalidad "Stock" para revendedores
+    // (cargas limitadas, una unidad por carga según disponibilidad).
+    // Vive en su propia colección, separada de "products", porque acá
+    // el precio ya es el final de revendedor (no hay precio de tienda
+    // asociado). Mismo criterio de acceso que resellerPricing: lectura
+    // pública (la página de revendedores la necesita sin login), solo
+    // el admin puede escribir.
+    match /resellerStockProducts/{productId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
   }
 }
