@@ -416,7 +416,13 @@
       catalogSection.classList.add("hidden");
     } else {
       maintenanceOverlay.style.display = "none";
-      loginSection.style.display = "";
+      // Solo restauramos el panel de login si el catálogo todavía NO
+      // se desbloqueó (sesión recordada). Si no, este callback async
+      // pisaba el display del login que showCatalog() ya había puesto
+      // en "none", haciendo que login y catálogo se vieran juntos.
+      if (catalogSection.classList.contains("hidden")) {
+        loginSection.style.display = "";
+      }
     }
   });
 
@@ -890,19 +896,19 @@
 
   function buildWhatsappLink(product, buyer) {
     const lines = [
-      "¡Hola!  Soy revendedor y ya realicé el pago, te dejo mi comprobante",
+      "¡Hola! 💙 Soy revendedor y ya realicé el pago, te dejo mi comprobante ✅",
       "",
-      " Quiero comprar:",
+      "🔷 Quiero comprar:",
       product.name,
     ];
     if (product._source === "stock") {
-      lines.push("", " Modalidad: STOCK (una por carga, según disponibilidad)");
+      lines.push("", "📦 Modalidad: STOCK (una por carga, según disponibilidad)");
     }
-    lines.push("", " Precio revendedor:", formatPrice(finalPrice(product)));
+    lines.push("", "🔹 Precio revendedor:", formatPrice(finalPrice(product)));
     if (buyer) {
-      lines.push("", " Mi ID (UID):", buyer.uid, " Nombre en el juego:", buyer.nickname);
+      lines.push("", "🆔 Mi ID (UID):", buyer.uid, "🎮 Nombre en el juego:", buyer.nickname);
     }
-    lines.push("", " Pedido realizado en settings.sbs");
+    lines.push("", "🛒 Pedido realizado en settings.sbs");
     const msg = lines.join("\n");
     return `https://wa.me/${SETTINGS.whatsappNumber}?text=${encodeURIComponent(msg)}`;
   }
