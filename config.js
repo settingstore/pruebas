@@ -11,7 +11,7 @@ export const SETTINGS = {
   // Logo propio (fondo transparente). Si más adelante querés cambiarlo,
   // reemplazá el archivo logo.png (o cambiá esta ruta) — se usa
   // en el header, el logo grande del Hero y el pop-up de la comunidad.
-  logoUrl: "logo.png",
+  logoUrl: "/logo.png",
   whatsappNumber: "5493454309950", // solo números, con código de país (54 = Argentina) — este es el número de PEDIDOS/checkout
 };
 
@@ -22,8 +22,8 @@ export const BANNER = {
   // Fotos de fondo del Hero. Se elige una según el tamaño de pantalla:
   // imageUrlMobile en celulares y imageUrlDesktop en pantallas más
   // grandes. Para cambiarlas, reemplazá los archivos o estas rutas.
-  imageUrlMobile: "hero-bg-mobile.jpg",
-  imageUrlDesktop: "hero-bg-desktop.jpg",
+  imageUrlMobile: "/hero-bg-mobile.jpg",
+  imageUrlDesktop: "/hero-bg-desktop.jpg",
 };
 
 export const SOCIALS = {

@@ -26,6 +26,17 @@ let PRODUCTS = [];
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
+// Las imágenes de producto se guardan en Firestore como nombres de
+// archivo sueltos (ej: "product-341.jpg"), pensados para vivir en la
+// raíz del sitio. Como ahora hay páginas en subcarpetas (/diamantes/,
+// /extra/), esta función las resuelve siempre contra la raíz para que
+// no se rompan sin importar desde qué página se muestren.
+const resolveAsset = (path) => {
+  if (!path) return path;
+  if (/^([a-z]+:)?\/\//i.test(path) || path.startsWith("/") || path.startsWith("data:")) return path;
+  return `/${path}`;
+};
+
 const formatPrice = (value) =>
   new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(value);
 
@@ -54,7 +65,8 @@ function showToast(message) {
 function renderBrand() {
   $$(".js-store-name").forEach((el) => (el.textContent = SETTINGS.storeName));
   $$(".js-logo").forEach((el) => (el.src = SETTINGS.logoUrl));
-  document.title = `${SETTINGS.storeName} — Diamantes Free Fire`;
+  // No tocamos document.title acá: cada página ya trae su propio
+  // <title> (Inicio / Diamantes / Extra / etc.) definido en el <head>.
 }
 
 /* ================= RENDER: HERO / BANNER ================= */
@@ -126,7 +138,7 @@ function productCardTemplate(product, index) {
   if (product.type === "quantity") return quantityCardTemplate(product, index);
 
   const img = product.image
-    ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
+    ? `<img src="${resolveAsset(product.image)}" alt="${product.name}" loading="lazy">`
     : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
 
   const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
@@ -177,7 +189,7 @@ function productCardTemplate(product, index) {
 // (cantidad / stepSize) * stepPrice.
 function quantityCardTemplate(product, index) {
   const img = product.image
-    ? `<img src="${product.image}" alt="${product.name}" loading="lazy">`
+    ? `<img src="${resolveAsset(product.image)}" alt="${product.name}" loading="lazy">`
     : `<div class="w-full h-full flex items-center justify-center">${DIAMOND_PLACEHOLDER_SVG}</div>`;
 
   const step = Number(product.stepSize) || 1;
@@ -591,7 +603,9 @@ function init() {
   }
 
   if (window.gsap) {
-    gsap.from("#diamantes .text-center", { y: 24, opacity: 0, duration: 0.9, ease: "power3.out" });
+    // Anima el título de la sección "hero" de la página actual, sea
+    // cual sea (#inicio, #diamantes o #extra).
+    gsap.from(".hero-offset .text-center", { y: 24, opacity: 0, duration: 0.9, ease: "power3.out" });
   }
 
   document.body.classList.remove("opacity-0");

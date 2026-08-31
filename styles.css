@@ -246,7 +246,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   padding-top: var(--header-h, 76px);
   transition: padding-top .15s ease;
 }
-#diamantes, #extra, #comunidad {
+#diamantes, #extra, #comunidad, #como-comprar, #pagos, #contacto, #inicio {
   scroll-margin-top: var(--header-h, 76px);
 }
 
@@ -256,6 +256,59 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 @media (min-width: 768px) {
   .step-line-h { background: linear-gradient(90deg, rgba(0,149,255,.6), rgba(0,149,255,0)); }
+}
+
+/* ============ Sección "Cómo comprar" — fondo celeste ============
+   Antes era negro (#05070a), igual al resto de las franjas del
+   sitio. Ahora tiene un fondo celeste propio (mismo tono que el
+   acento de marca --c-celeste) para diferenciarse visualmente del
+   resto de las secciones. */
+.section-celeste {
+  background:
+    radial-gradient(65% 70% at 50% 0%, rgba(77, 227, 252, 0.30), transparent 65%),
+    linear-gradient(180deg, #0d3a57 0%, #0a2c44 45%, #071f33 100%);
+}
+.section-celeste .glass {
+  background: rgba(13, 40, 60, 0.55);
+}
+
+/* ============ Botones grandes del hub (página de inicio) ============
+   Reemplazan la grilla de productos en "/": llevan a /diamantes/ y
+   /extra/. */
+.hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+  transition: transform .3s ease, box-shadow .35s ease, border-color .35s ease;
+}
+.hub-card:hover { transform: translateY(-4px); }
+.hub-card__icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 0 14px rgba(77, 227, 252, 0.5));
+}
+.hub-card__title {
+  font-family: var(--f-display);
+  font-size: 1.4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 8px;
+}
+.hub-card__desc {
+  font-size: 0.9rem;
+  color: var(--c-gray-soft);
+  margin-bottom: 24px;
+}
+
+/* Botón "ir a la otra sección" al final de cada grilla de productos */
+.cross-link-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
 }
 
 /* Copiar botón feedback */
