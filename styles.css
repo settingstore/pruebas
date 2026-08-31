@@ -123,13 +123,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* Botones */
 .btn-primary {
-  background: linear-gradient(135deg, var(--c-blue), var(--c-blue-deep));
-  color: #fff;
+  background: linear-gradient(135deg, #5EE7FF, #12ADD9);
+  color: #04141c;
   font-weight: 600;
-  box-shadow: 0 0 26px rgba(0, 149, 255, 0.45);
+  box-shadow: 0 0 26px rgba(77, 227, 252, 0.5);
   transition: transform .25s ease, box-shadow .25s ease, filter .25s ease;
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(77, 227, 252, 0.6); filter: brightness(1.08); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 36px rgba(77, 227, 252, 0.7); filter: brightness(1.08); }
 .btn-primary:active { transform: translateY(0); }
 
 .btn-ghost {
