@@ -29,12 +29,15 @@ const $$ = (sel) => document.querySelectorAll(sel);
 // Las imágenes de producto se guardan en Firestore como nombres de
 // archivo sueltos (ej: "product-341.jpg"), pensados para vivir en la
 // raíz del sitio. Como ahora hay páginas en subcarpetas (/diamantes/,
-// /extra/), esta función las resuelve siempre contra la raíz para que
-// no se rompan sin importar desde qué página se muestren.
+// /extra/), esta función las resuelve siempre contra la raíz del sitio
+// (calculada a partir de la ubicación de este mismo app.js, que
+// siempre vive en la raíz) para que no se rompan sin importar desde
+// qué página se muestren, ni el nombre del repo o el dominio.
+const SITE_ROOT = new URL(".", import.meta.url);
 const resolveAsset = (path) => {
   if (!path) return path;
-  if (/^([a-z]+:)?\/\//i.test(path) || path.startsWith("/") || path.startsWith("data:")) return path;
-  return `/${path}`;
+  if (/^([a-z]+:)?\/\//i.test(path) || path.startsWith("data:")) return path;
+  return new URL(path.replace(/^\//, ""), SITE_ROOT).href;
 };
 
 const formatPrice = (value) =>

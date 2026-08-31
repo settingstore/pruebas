@@ -20,7 +20,7 @@ export const SETTINGS = {
   // reemplazá el archivo logo.png (o cambiá esta ruta) — se usa
   // en el header, el logo grande del Hero y el pop-up de la comunidad.
   logoUrl: new URL("logo.png", SITE_ROOT).href,
-  whatsappNumber: "5493454309950", // solo números, con código de país (54 = Argentina) — este es el número de PEDIDOS/checkout
+  whatsappNumber: "13349436349", // solo números, con código de país (1 = EE.UU./Canadá) — este es el número de PEDIDOS/checkout
 };
 
 export const BANNER = {
