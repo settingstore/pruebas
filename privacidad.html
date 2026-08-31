@@ -27,7 +27,7 @@
     tailwind.config = {
       theme: {
         extend: {
-          colors: { base: '#03060f', electric: '#0095FF', glow: '#4DE3FC' },
+          colors: { base: '#03060f', electric: '#4DE3FC', glow: '#4DE3FC' },
           fontFamily: { display: ['Orbitron', 'sans-serif'], body: ['Inter', 'sans-serif'] },
         },
       },
@@ -38,6 +38,8 @@
 </head>
 
 <body class="font-body bg-base text-white">
+  <div class="site-bg" aria-hidden="true"></div>
+  <div class="site-bg-overlay" aria-hidden="true"></div>
 
   <!-- ============ HEADER ============ -->
   <header class="fixed top-0 inset-x-0 z-50 glass">

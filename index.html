@@ -71,7 +71,7 @@
         extend: {
           colors: {
             base: '#03060f',
-            electric: '#0095FF',
+            electric: '#4DE3FC',
             glow: '#4DE3FC',
           },
           fontFamily: {
@@ -90,6 +90,9 @@
 </head>
 
 <body class="font-body bg-base text-white opacity-0 transition-opacity duration-500">
+
+  <div class="site-bg" aria-hidden="true"></div>
+  <div class="site-bg-overlay" aria-hidden="true"></div>
 
   <!-- ============ HEADER ============ -->
   <header class="fixed top-0 inset-x-0 z-50 glass">
@@ -130,7 +133,7 @@
   <!-- ============ PRODUCTOS ============ -->
   <section id="productos" class="max-w-6xl mx-auto px-5 pt-24 pb-16">
     <div class="rounded-2xl overflow-hidden glow-border mb-8" data-aos="fade-down">
-      <img src="banner-top.jpg" alt="Settings Store" class="w-full h-auto max-h-40 sm:max-h-48 object-cover" />
+      <img src="banner-top.jpg" alt="Settings Store" class="w-full aspect-[17/4] object-cover object-center" />
     </div>
     <div class="text-center mb-8" data-aos="fade-up">
       <p class="text-xs tracking-[0.3em] text-electric mb-2">RECARGAS</p>

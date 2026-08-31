@@ -121,6 +121,24 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
     linear-gradient(180deg, #03060f 0%, #050a15 60%, #03060f 100%);
 }
 
+/* Fondo global: imagen borrosa fija detrás de todo el contenido, con
+   una capa oscura encima para mantener la legibilidad del texto. */
+.site-bg {
+  position: fixed;
+  inset: -60px;
+  background: url('bg-blur.jpg') center/cover no-repeat;
+  filter: blur(45px) saturate(1.15) brightness(0.6);
+  z-index: -2;
+  pointer-events: none;
+}
+.site-bg-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3,6,15,.55) 0%, rgba(3,6,15,.82) 55%, rgba(3,6,15,.92) 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
 /* Botones */
 .btn-primary {
   background: linear-gradient(135deg, #5EE7FF, #12ADD9);
