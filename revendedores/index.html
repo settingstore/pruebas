@@ -19,7 +19,7 @@
   tailwind.config = {
     theme: {
       extend: {
-        colors: { base: '#050505', electric: '#00A8FF', glow: '#00D9FF' },
+        colors: { base: '#03060f', electric: '#0095FF', glow: '#4DE3FC' },
         fontFamily: { display: ['Orbitron', 'sans-serif'], body: ['Inter', 'sans-serif'] },
       },
     },
@@ -101,8 +101,8 @@
   .rv-badge {
     display: inline-block;
     padding: 4px 10px;
-    background: rgba(0,168,255,0.12);
-    border: 1px solid rgba(0,168,255,0.35);
+    background: rgba(0,149,255,0.12);
+    border: 1px solid rgba(0,149,255,0.35);
     border-radius: 20px;
     font-size: 0.75rem;
     color: var(--c-blue-glow);
@@ -111,7 +111,7 @@
 
   /* Top 3 revendedores */
   .rv-top3-box {
-    background: rgba(0,168,255,0.04); border: 1px dashed rgba(0,168,255,0.3); border-radius: var(--radius);
+    background: rgba(0,149,255,0.04); border: 1px dashed rgba(0,149,255,0.3); border-radius: var(--radius);
     padding: 18px 16px 16px; margin-bottom: 8px;
   }
   .rv-top3-label {
@@ -145,7 +145,7 @@
     .rv-top3-card.p1, .rv-top3-card.p2, .rv-top3-card.p3 { order: initial; padding-top: 14px; }
     .rv-top3-card.p1 { order: -1; }
   }
-  .btn-ghost-active { border-color: var(--c-blue-glow) !important; background: rgba(0,168,255,0.1) !important; color: var(--c-blue-glow); }
+  .btn-ghost-active { border-color: var(--c-blue-glow) !important; background: rgba(0,149,255,0.1) !important; color: var(--c-blue-glow); }
 
   /* Selector de modalidad: Ilimitado / Stock */
   .rv-mode-toggle {
@@ -602,7 +602,7 @@
         <linearGradient id="diamondGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#e9f6ff"/>
           <stop offset="55%" stop-color="#7fd6ff"/>
-          <stop offset="100%" stop-color="#00a8ff"/>
+          <stop offset="100%" stop-color="#0095ff"/>
         </linearGradient>
       </defs>
     </svg>`;
@@ -896,19 +896,19 @@
 
   function buildWhatsappLink(product, buyer) {
     const lines = [
-      "¡Hola! 💙 Soy revendedor y ya realicé el pago, te dejo mi comprobante ✅",
+      "¡Hola!  Soy revendedor y ya realicé el pago, te dejo mi comprobante ",
       "",
-      "🔷 Quiero comprar:",
+      " Quiero comprar:",
       product.name,
     ];
     if (product._source === "stock") {
-      lines.push("", "📦 Modalidad: STOCK (una por carga, según disponibilidad)");
+      lines.push("", " Modalidad: STOCK (una por carga, según disponibilidad)");
     }
-    lines.push("", "🔹 Precio revendedor:", formatPrice(finalPrice(product)));
+    lines.push("", " Precio revendedor:", formatPrice(finalPrice(product)));
     if (buyer) {
-      lines.push("", "🆔 Mi ID (UID):", buyer.uid, "🎮 Nombre en el juego:", buyer.nickname);
+      lines.push("", " Mi ID (UID):", buyer.uid, " Nombre en el juego:", buyer.nickname);
     }
-    lines.push("", "🛒 Pedido realizado en settings.sbs");
+    lines.push("", " Pedido realizado en settings.sbs");
     const msg = lines.join("\n");
     return `https://wa.me/${SETTINGS.whatsappNumber}?text=${encodeURIComponent(msg)}`;
   }

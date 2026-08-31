@@ -99,7 +99,7 @@ const DIAMOND_PLACEHOLDER_SVG = `
       <linearGradient id="diamondGrad" x1="0" y1="0" x2="0" y2="1">
         <stop offset="0%" stop-color="#e9f6ff"/>
         <stop offset="55%" stop-color="#7fd6ff"/>
-        <stop offset="100%" stop-color="#00a8ff"/>
+        <stop offset="100%" stop-color="#0095ff"/>
       </linearGradient>
     </defs>
   </svg>`;
@@ -115,7 +115,7 @@ function buildWhatsappLink(product, buyer) {
     formatPrice(finalPrice(product)),
   ];
   if (buyer) {
-    lines.push("", " Mi ID (UID):", buyer.uid, "🎮 Nombre en el juego:", buyer.nickname);
+    lines.push("", " Mi ID (UID):", buyer.uid, "Nombre en el juego:", buyer.nickname);
   }
   lines.push("", " Pedido realizado en settings.sbs");
   const msg = lines.join("\n");
