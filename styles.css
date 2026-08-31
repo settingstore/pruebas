@@ -201,8 +201,53 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   50% { opacity: 1; filter: drop-shadow(0 0 10px var(--c-blue-glow)); }
 }
 
-/* Mobile nav */
-.mobile-menu { transition: max-height .35s ease, opacity .3s ease; overflow: hidden; }
+/* ============ Barra de navegación rápida (móvil) ============
+   Siempre visible debajo del header, sin depender de un menú
+   hamburguesa: permite llegar con un toque a cada sección. */
+.mobile-quicknav {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mobile-quicknav::-webkit-scrollbar { display: none; }
+.mobile-quicknav__list {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+.mobile-quicknav__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--c-gray-soft);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+.mobile-quicknav__pill:hover,
+.mobile-quicknav__pill:active {
+  color: var(--c-white);
+  border-color: rgba(77, 227, 252, .5);
+  background: rgba(77, 227, 252, .08);
+}
+
+/* Compensa el header fijo (más alto en móvil por la barra rápida de
+   arriba) al saltar directo a una sección mediante un ancla (#...). */
+#diamantes, #extra, #comunidad {
+  scroll-margin-top: 108px;
+}
+@media (min-width: 768px) {
+  #diamantes, #extra, #comunidad {
+    scroll-margin-top: 84px;
+  }
+}
 
 /* Sección "Cómo comprar" — línea conectora */
 .step-line {

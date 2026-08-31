@@ -219,24 +219,28 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
-function renderProducts() {
-  const grid = $("#products-grid");
+// Un producto es "diamante" cuando NO es del tipo "por cantidad" (Tokens,
+// Cajas) y tiene una cantidad de diamantes cargada (> 0). Todo lo demás
+// (diamonds === 0/vacío → pases y tarjetas mensuales, o type === "quantity"
+// → tokens y cajas de tokens) cae en la sección "Extra".
+const isDiamondProduct = (p) => p.type !== "quantity" && Number(p.diamonds) > 0;
+
+function renderProductGrid(gridId, products) {
+  const grid = $(gridId);
   if (!grid) return;
 
-  const visible = PRODUCTS.filter((p) => p.visible !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-  if (!visible.length) {
+  if (!products.length) {
     grid.innerHTML = `<p class="col-span-full text-center text-[var(--c-gray-soft)]">Pronto vamos a agregar productos. ¡Volvé más tarde!</p>`;
     return;
   }
 
   // Guardamos el índice real (dentro de PRODUCTS) en cada tarjeta para
   // poder recuperar el producto elegido cuando se abra el checkout.
-  grid.innerHTML = visible
+  grid.innerHTML = products
     .map((product) => productCardTemplate(product, PRODUCTS.indexOf(product)))
     .join("");
 
-  $$(".js-buy-btn").forEach((btn) => {
+  grid.querySelectorAll(".js-buy-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const product = PRODUCTS[Number(btn.dataset.productIndex)];
       if (product) openCheckout(product);
@@ -244,6 +248,16 @@ function renderProducts() {
   });
 
   bindQuantityCards(grid);
+}
+
+function renderProducts() {
+  const visible = PRODUCTS.filter((p) => p.visible !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+  const diamondProducts = visible.filter(isDiamondProduct);
+  const extraProducts = visible.filter((p) => !isDiamondProduct(p));
+
+  renderProductGrid("#products-grid", diamondProducts);
+  renderProductGrid("#products-grid-extra", extraProducts);
 }
 
 // Engancha los selectores +/- de las tarjetas "por cantidad" (Tokens,
@@ -320,6 +334,12 @@ function renderSocials() {
     $$(sel).forEach((el) => {
       if (SOCIALS[key]) el.href = SOCIALS[key];
     });
+  });
+
+  // Enlaces de "Soporte" (nav de escritorio, nav rápida de móvil y
+  // footer): todos apuntan al mismo WhatsApp de pedidos/soporte.
+  $$(".js-support-link").forEach((el) => {
+    if (SOCIALS.whatsapp) el.href = SOCIALS.whatsapp;
   });
 }
 
@@ -478,25 +498,6 @@ function bindCopyButtons() {
   });
 }
 
-/* ================= INTERACCIÓN: MENÚ MÓVIL ================= */
-
-function bindMobileMenu() {
-  const toggle = $("#menu-toggle");
-  const menu = $("#mobile-menu");
-  if (!toggle || !menu) return;
-  toggle.addEventListener("click", () => {
-    const isOpen = menu.classList.toggle("open");
-    menu.style.maxHeight = isOpen ? menu.scrollHeight + "px" : "0px";
-    toggle.setAttribute("aria-expanded", String(isOpen));
-  });
-  $$("#mobile-menu a").forEach((a) =>
-    a.addEventListener("click", () => {
-      menu.classList.remove("open");
-      menu.style.maxHeight = "0px";
-    })
-  );
-}
-
 /* ================= MANTENIMIENTO ================= */
 
 // Se activa/desactiva desde admin.html → pestaña "Mantenimiento", sin
@@ -540,7 +541,6 @@ function subscribeMaintenance() {
 /* ================= INIT ================= */
 
 function init() {
-  bindMobileMenu();
   bindCopyButtons();
   bindCheckout();
   bindGroupPopup();
@@ -569,7 +569,7 @@ function init() {
   }
 
   if (window.gsap) {
-    gsap.from("#productos .text-center", { y: 24, opacity: 0, duration: 0.9, ease: "power3.out" });
+    gsap.from("#diamantes .text-center", { y: 24, opacity: 0, duration: 0.9, ease: "power3.out" });
   }
 
   document.body.classList.remove("opacity-0");
