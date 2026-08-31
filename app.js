@@ -498,6 +498,27 @@ function bindCopyButtons() {
   });
 }
 
+/* ================= LAYOUT: ALTO REAL DEL HEADER ================= */
+
+// El header fijo mide distinto según el ancho de pantalla (en móvil
+// suma la barra rápida de accesos). Medimos su alto real y lo
+// guardamos en --header-h para que el banner y las secciones de abajo
+// nunca queden tapados, sin necesidad de "adivinar" un valor fijo.
+function syncHeaderHeight() {
+  const header = $("#site-header");
+  if (!header) return;
+  const setVar = () => {
+    document.documentElement.style.setProperty("--header-h", `${header.offsetHeight}px`);
+  };
+  setVar();
+  window.addEventListener("load", setVar);
+  window.addEventListener("resize", setVar);
+  window.addEventListener("orientationchange", setVar);
+  if (window.ResizeObserver) {
+    new ResizeObserver(setVar).observe(header);
+  }
+}
+
 /* ================= MANTENIMIENTO ================= */
 
 // Se activa/desactiva desde admin.html → pestaña "Mantenimiento", sin
@@ -541,6 +562,7 @@ function subscribeMaintenance() {
 /* ================= INIT ================= */
 
 function init() {
+  syncHeaderHeight();
   bindCopyButtons();
   bindCheckout();
   bindGroupPopup();

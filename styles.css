@@ -4,6 +4,11 @@
    ============================================================ */
 
 :root { 
+  /* Le decimos al navegador que este sitio es oscuro por diseño, para
+     que Chrome/Edge no intenten "auto-oscurecer" u invertir colores de
+     texto (lo que puede volver algunas letras negras sobre fondo oscuro). */
+  color-scheme: dark;
+
   /* Colores base */
   --c-bg: #03060f;
   --c-bg-alt: #070c1a;
@@ -203,28 +208,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 
 /* ============ Barra de navegación rápida (móvil) ============
    Siempre visible debajo del header, sin depender de un menú
-   hamburguesa: permite llegar con un toque a cada sección. */
+   hamburguesa: los 6 accesos entran en pantalla en 2 filas, sin
+   necesidad de desplazarse hacia los costados. */
 .mobile-quicknav {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
-.mobile-quicknav::-webkit-scrollbar { display: none; }
 .mobile-quicknav__list {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  white-space: nowrap;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  padding: 8px 10px;
 }
 .mobile-quicknav__pill {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 14px;
+  justify-content: center;
+  text-align: center;
+  padding: 7px 4px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: 11.5px;
+  line-height: 1.1;
   font-weight: 500;
   color: var(--c-gray-soft);
   background: rgba(255, 255, 255, 0.04);
@@ -238,15 +241,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   background: rgba(77, 227, 252, .08);
 }
 
-/* Compensa el header fijo (más alto en móvil por la barra rápida de
-   arriba) al saltar directo a una sección mediante un ancla (#...). */
-#diamantes, #extra, #comunidad {
-  scroll-margin-top: 108px;
+/* Compensa la altura real del header fijo (que en móvil incluye la
+   barra rápida de arriba) para que nunca tape el contenido de abajo
+   (por ejemplo el banner) ni al saltar directo a una sección con un
+   ancla (#...). El valor exacto de --header-h lo calcula app.js según
+   el alto real del header en cada momento (cambia entre pantallas). */
+.hero-offset {
+  padding-top: var(--header-h, 132px);
+  transition: padding-top .15s ease;
 }
-@media (min-width: 768px) {
-  #diamantes, #extra, #comunidad {
-    scroll-margin-top: 84px;
-  }
+#diamantes, #extra, #comunidad {
+  scroll-margin-top: var(--header-h, 132px);
 }
 
 /* Sección "Cómo comprar" — línea conectora */

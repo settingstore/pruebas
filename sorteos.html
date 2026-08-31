@@ -145,8 +145,16 @@
     #sorteos-content {
       opacity: 0;
       transition: opacity .6s ease;
+      /* Colores de respaldo: si por lo que sea el CDN de Tailwind no
+         llega a cargar (bloqueo de red, adblock, etc.), el texto NUNCA
+         debe quedar negro sobre el fondo oscuro. */
+      color: #e7ecf3;
     }
     #sorteos-content.is-visible { opacity: 1; }
+    #sorteos-content h1 { color: #ffffff; }
+    #sorteos-content p { color: #aeb7c7; }
+    #sorteos-content a { color: inherit; }
+    #sorteos-content footer a:hover { color: var(--c-blue-glow, #4de3fc); }
 
     .prize-badge {
       display: inline-flex;
@@ -234,8 +242,15 @@
   <script type="module">
     import { COMMUNITY } from "./config.js";
 
+    // El botón "Unirme a la comunidad" de Sorteos apunta puntualmente al
+    // Grupo oficial de recargas (no al canal ni al grupo genérico).
+    const recargasGroup = COMMUNITY.groups?.find((g) =>
+      g.label?.toLowerCase().includes("recargas")
+    );
+    const communityUrl = recargasGroup?.url || COMMUNITY.mainGroupUrl;
+
     document.querySelectorAll(".js-community-main").forEach((el) => {
-      el.href = COMMUNITY.mainGroupUrl;
+      el.href = communityUrl;
     });
     document.querySelectorAll(".js-year").forEach((el) => {
       el.textContent = new Date().getFullYear();
