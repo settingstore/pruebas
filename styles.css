@@ -207,12 +207,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 }
 
 /* ============ Barra de navegación rápida (móvil) ============
-   Siempre visible debajo del header, sin depender de un menú
-   hamburguesa: los 6 accesos entran en pantalla en 2 filas, sin
-   necesidad de desplazarse hacia los costados. */
-.mobile-quicknav {
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-}
+   Va entre el banner y el título de "Recargas", no dentro del header:
+   los 6 accesos entran en 2 filas, sin necesidad de desplazarse. */
 .mobile-quicknav__list {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -247,11 +243,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
    ancla (#...). El valor exacto de --header-h lo calcula app.js según
    el alto real del header en cada momento (cambia entre pantallas). */
 .hero-offset {
-  padding-top: var(--header-h, 132px);
+  padding-top: var(--header-h, 76px);
   transition: padding-top .15s ease;
 }
 #diamantes, #extra, #comunidad {
-  scroll-margin-top: var(--header-h, 132px);
+  scroll-margin-top: var(--header-h, 76px);
 }
 
 /* Sección "Cómo comprar" — línea conectora */
