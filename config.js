@@ -6,12 +6,20 @@
  * ------------------------------------------------------------------
  */
 
+// Carpeta raíz del sitio, calculada a partir de la ubicación de este
+// mismo archivo (config.js siempre vive en la raíz del repo). Así las
+// rutas de abajo funcionan sin importar el nombre del repo, el dominio,
+// o si la página que las usa está en la raíz o en una subcarpeta
+// (ej. /diamantes/) — a diferencia de una ruta relativa simple ("logo.png"),
+// que se resuelve contra la página, no contra este archivo.
+const SITE_ROOT = new URL(".", import.meta.url);
+
 export const SETTINGS = {
   storeName: "Settings Store",
   // Logo propio (fondo transparente). Si más adelante querés cambiarlo,
   // reemplazá el archivo logo.png (o cambiá esta ruta) — se usa
   // en el header, el logo grande del Hero y el pop-up de la comunidad.
-  logoUrl: "/logo.png",
+  logoUrl: new URL("logo.png", SITE_ROOT).href,
   whatsappNumber: "5493454309950", // solo números, con código de país (54 = Argentina) — este es el número de PEDIDOS/checkout
 };
 
@@ -22,8 +30,8 @@ export const BANNER = {
   // Fotos de fondo del Hero. Se elige una según el tamaño de pantalla:
   // imageUrlMobile en celulares y imageUrlDesktop en pantallas más
   // grandes. Para cambiarlas, reemplazá los archivos o estas rutas.
-  imageUrlMobile: "/hero-bg-mobile.jpg",
-  imageUrlDesktop: "/hero-bg-desktop.jpg",
+  imageUrlMobile: new URL("hero-bg-mobile.jpg", SITE_ROOT).href,
+  imageUrlDesktop: new URL("hero-bg-desktop.jpg", SITE_ROOT).href,
 };
 
 export const SOCIALS = {
